@@ -234,6 +234,7 @@ function connectToStatusStream() {
 
 function handleStreamOpen() {
   streamHasError = false;
+  stopFallbackPolling();
   if (!hasReceivedStatusUpdate) {
     renderInfo(infoPanel, t('info.stream.connected'), InfoViewState.SUCCESS);
   }
@@ -245,6 +246,7 @@ function handleStreamStatusUpdate({ state }) {
 }
 
 function handleStreamError() {
+  startFallbackPolling();
   if (streamHasError) {
     return;
   }

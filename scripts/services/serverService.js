@@ -1,3 +1,4 @@
+import { buildApiUrl } from '../config.js';
 import { request } from '../httpClient.js';
 
 /**
@@ -20,7 +21,7 @@ export const ServerLifecycleState = Object.freeze({
 export async function fetchServerStatus() {
   const { data } = await request({ path: '/server/status' });
   return {
-    state: mapPayloadToState(data),
+    state: normaliseServerStatusPayload(data),
     raw: data,
   };
 }
@@ -49,7 +50,7 @@ export async function stopServer() {
  * @param {unknown} payload Response payload obtained from the API.
  * @returns {string} One of the {@link ServerLifecycleState} values.
  */
-function mapPayloadToState(payload) {
+export function normaliseServerStatusPayload(payload) {
   if (typeof payload === 'string') {
     return normaliseStatusString(payload);
   }
@@ -101,4 +102,81 @@ function normaliseStatusString(value) {
   }
 
   return ServerLifecycleState.UNKNOWN;
+}
+
+const STATUS_STREAM_ENDPOINT = '/server/status/stream';
+
+/**
+ * Subscribes to the server status stream exposed by the backend using SSE.
+ *
+ * @param {Object} [handlers] Collection of callbacks invoked by stream events.
+ * @param {(update: { state: string, raw: unknown }) => void} [handlers.onStatus] Invoked when a new payload is received.
+ * @param {() => void} [handlers.onOpen] Invoked when the stream connection is established.
+ * @param {(event: Event | Error) => void} [handlers.onError] Invoked when the browser reports a stream error.
+ * @returns {{ close: () => void, source: EventSource | null }} Handle used to terminate the subscription.
+ */
+export function subscribeToServerStatusStream({ onStatus, onOpen, onError } = {}) {
+  if (typeof window === 'undefined' || typeof window.EventSource === 'undefined') {
+    return {
+      close: () => {},
+      source: null,
+    };
+  }
+
+  const endpoint = buildApiUrl(STATUS_STREAM_ENDPOINT);
+  let source;
+  try {
+    source = new EventSource(endpoint);
+  } catch (error) {
+    if (typeof onError === 'function') {
+      onError(error);
+    }
+    return {
+      close: () => {},
+      source: null,
+    };
+  }
+
+  const handleMessage = (event) => {
+    if (!event || typeof event.data !== 'string' || event.data.length === 0) {
+      return;
+    }
+
+    let payload;
+    try {
+      payload = JSON.parse(event.data);
+    } catch (error) {
+      payload = event.data;
+    }
+
+    const state = normaliseServerStatusPayload(payload);
+    if (typeof onStatus === 'function') {
+      onStatus({ state, raw: payload });
+    }
+  };
+
+  const handleOpen = () => {
+    if (typeof onOpen === 'function') {
+      onOpen();
+    }
+  };
+
+  const handleError = (event) => {
+    if (typeof onError === 'function') {
+      onError(event);
+    }
+  };
+
+  source.addEventListener('message', handleMessage);
+  source.addEventListener('open', handleOpen);
+  source.addEventListener('error', handleError);
+
+  const close = () => {
+    source.removeEventListener('message', handleMessage);
+    source.removeEventListener('open', handleOpen);
+    source.removeEventListener('error', handleError);
+    source.close();
+  };
+
+  return { close, source };
 }

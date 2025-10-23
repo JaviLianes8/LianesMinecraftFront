@@ -1,10 +1,11 @@
-import { STATUS_MIN_INTERVAL_MS, buildApiUrl } from './config.js';
+import { buildApiUrl } from './config.js';
 import { HttpError, TimeoutError } from './httpClient.js';
 import {
   fetchServerStatus,
   startServer,
   stopServer,
   ServerLifecycleState,
+  subscribeToServerStatusStream,
 } from './services/serverService.js';
 import { getActiveLocale, translate as t } from './ui/i18n.js';
 import { InfoViewState, renderInfo, renderStatus, StatusViewState } from './ui/statusPresenter.js';
@@ -18,8 +19,14 @@ const flame = document.querySelector('[data-role="flame"]');
 
 let currentState = ServerLifecycleState.UNKNOWN;
 let statusEligible = false;
-let lastStatusTimestamp = 0;
 let busy = false;
+let statusStreamSubscription = null;
+let hasReceivedStatusUpdate = false;
+let streamHasError = false;
+let statusSnapshotPromise = null;
+let fallbackPollingId = null;
+
+const STATUS_FALLBACK_INTERVAL_MS = 30000;
 
 const defaultButtonLabels = new Map();
 
@@ -29,12 +36,19 @@ function initialise() {
   applyLocaleToStaticContent();
   cacheDefaultButtonLabels();
   renderStatus(statusButton, torchSvg, flame, currentState);
-  renderInfo(infoPanel, t('info.initialPrompt'));
+  prepareStatusIndicator();
+  renderInfo(infoPanel, t('info.stream.connecting'), InfoViewState.PENDING);
   updateControlAvailability();
 
-  statusButton.addEventListener('click', handleStatusRequest);
   startButton.addEventListener('click', handleStartRequest);
   stopButton.addEventListener('click', handleStopRequest);
+
+  connectToStatusStream();
+  requestStatusSnapshot();
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('beforeunload', cleanupStatusStream, { once: true });
+  }
 }
 
 function applyLocaleToStaticContent() {
@@ -76,10 +90,17 @@ function cacheDefaultButtonLabels() {
   defaultButtonLabels.set(stopButton, stopButton.textContent.trim());
 }
 
+function prepareStatusIndicator() {
+  statusButton.setAttribute('type', 'button');
+  statusButton.setAttribute('disabled', 'true');
+  statusButton.setAttribute('aria-disabled', 'true');
+  updateButtonTooltip(statusButton, t('info.status.readOnly'));
+}
+
 function updateControlAvailability() {
-  statusButton.toggleAttribute('disabled', busy);
-  statusButton.setAttribute('aria-disabled', busy ? 'true' : 'false');
-  updateButtonTooltip(statusButton, busy ? t('info.busy') : null);
+  statusButton.setAttribute('disabled', 'true');
+  statusButton.setAttribute('aria-disabled', 'true');
+  updateButtonTooltip(statusButton, t('info.status.readOnly'));
 
   const startDisabled = busy || !statusEligible || currentState !== ServerLifecycleState.OFFLINE;
   startButton.toggleAttribute('disabled', startDisabled);
@@ -114,46 +135,6 @@ function updateDownloadLinkHref(anchor, resourcePath) {
   }
 }
 
-async function handleStatusRequest() {
-  if (busy) {
-    return;
-  }
-
-  const now = Date.now();
-  const elapsed = now - lastStatusTimestamp;
-  if (elapsed < STATUS_MIN_INTERVAL_MS) {
-    const waitSeconds = Math.ceil((STATUS_MIN_INTERVAL_MS - elapsed) / 1000);
-    renderInfo(infoPanel, t('info.wait', { seconds: waitSeconds }));
-    return;
-  }
-
-  setBusy(true, StatusViewState.CHECKING);
-  renderInfo(infoPanel, t('info.checking'), InfoViewState.PENDING);
-
-  try {
-    const { state } = await fetchServerStatus();
-    currentState = state;
-    statusEligible = state === ServerLifecycleState.ONLINE || state === ServerLifecycleState.OFFLINE;
-    lastStatusTimestamp = Date.now();
-
-    if (state === ServerLifecycleState.ONLINE) {
-      renderInfo(infoPanel, t('info.online'), InfoViewState.SUCCESS);
-    } else if (state === ServerLifecycleState.OFFLINE) {
-      renderInfo(infoPanel, t('info.offline'), InfoViewState.SUCCESS);
-    } else if (state === ServerLifecycleState.ERROR) {
-      renderInfo(infoPanel, t('info.error'), InfoViewState.ERROR);
-    } else {
-      renderInfo(infoPanel, t('info.unknown'));
-    }
-  } catch (error) {
-    currentState = ServerLifecycleState.ERROR;
-    statusEligible = false;
-    renderInfo(infoPanel, describeError(error), InfoViewState.ERROR);
-  } finally {
-    setBusy(false);
-  }
-}
-
 async function handleStartRequest() {
   if (!statusEligible || currentState !== ServerLifecycleState.OFFLINE) {
     renderInfo(infoPanel, t('info.start.requireOffline'), InfoViewState.ERROR);
@@ -174,6 +155,10 @@ async function handleStartRequest() {
 async function handleStopRequest() {
   if (!statusEligible || currentState !== ServerLifecycleState.ONLINE) {
     renderInfo(infoPanel, t('info.stop.requireOnline'), InfoViewState.ERROR);
+    return;
+  }
+
+  if (!confirmStopAction()) {
     return;
   }
 
@@ -225,6 +210,137 @@ function setBusy(value, viewState = currentState) {
   updateControlAvailability();
   renderStatus(statusButton, torchSvg, flame, viewState);
   statusButton.setAttribute('aria-busy', value ? 'true' : 'false');
+}
+
+function connectToStatusStream() {
+  cleanupStatusStream();
+  streamHasError = false;
+  hasReceivedStatusUpdate = false;
+
+  statusStreamSubscription = subscribeToServerStatusStream({
+    onOpen: handleStreamOpen,
+    onStatus: handleStreamStatusUpdate,
+    onError: handleStreamError,
+  });
+
+  if (!statusStreamSubscription.source) {
+    renderInfo(infoPanel, t('info.stream.unsupported'), InfoViewState.ERROR);
+    startFallbackPolling();
+    return;
+  }
+
+  stopFallbackPolling();
+}
+
+function handleStreamOpen() {
+  streamHasError = false;
+  stopFallbackPolling();
+  if (!hasReceivedStatusUpdate) {
+    renderInfo(infoPanel, t('info.stream.connected'), InfoViewState.SUCCESS);
+  }
+}
+
+function handleStreamStatusUpdate({ state }) {
+  streamHasError = false;
+  applyServerLifecycleState(state);
+}
+
+function handleStreamError() {
+  startFallbackPolling();
+  if (streamHasError) {
+    return;
+  }
+
+  streamHasError = true;
+  const infoKey = hasReceivedStatusUpdate ? 'info.stream.reconnecting' : 'info.stream.error';
+  const infoState = hasReceivedStatusUpdate ? InfoViewState.PENDING : InfoViewState.ERROR;
+  renderInfo(infoPanel, t(infoKey), infoState);
+
+  requestStatusSnapshot().catch((error) => {
+    console.error('Unable to refresh status snapshot after stream error', error);
+  });
+}
+
+function cleanupStatusStream() {
+  if (statusStreamSubscription && typeof statusStreamSubscription.close === 'function') {
+    statusStreamSubscription.close();
+  }
+  statusStreamSubscription = null;
+  stopFallbackPolling();
+}
+
+function startFallbackPolling() {
+  stopFallbackPolling();
+  fallbackPollingId = setInterval(() => {
+    requestStatusSnapshot();
+  }, STATUS_FALLBACK_INTERVAL_MS);
+}
+
+function stopFallbackPolling() {
+  if (fallbackPollingId) {
+    clearInterval(fallbackPollingId);
+    fallbackPollingId = null;
+  }
+}
+
+function applyServerLifecycleState(state) {
+  hasReceivedStatusUpdate = true;
+  currentState = state;
+  statusEligible = state === ServerLifecycleState.ONLINE || state === ServerLifecycleState.OFFLINE;
+  renderStatus(statusButton, torchSvg, flame, state);
+  updateControlAvailability();
+
+  const { message, viewState } = resolveLifecycleInfo(state);
+  renderInfo(infoPanel, message, viewState);
+}
+
+function resolveLifecycleInfo(state) {
+  if (state === ServerLifecycleState.ONLINE) {
+    return { message: t('info.online'), viewState: InfoViewState.SUCCESS };
+  }
+  if (state === ServerLifecycleState.OFFLINE) {
+    return { message: t('info.offline'), viewState: InfoViewState.SUCCESS };
+  }
+  if (state === ServerLifecycleState.ERROR) {
+    return { message: t('info.error'), viewState: InfoViewState.ERROR };
+  }
+  return { message: t('info.unknown'), viewState: InfoViewState.PENDING };
+}
+
+function requestStatusSnapshot() {
+  if (statusSnapshotPromise) {
+    return statusSnapshotPromise;
+  }
+
+  statusSnapshotPromise = (async () => {
+    try {
+      const { state } = await fetchServerStatus();
+      applyServerLifecycleState(state);
+    } catch (error) {
+      currentState = ServerLifecycleState.ERROR;
+      statusEligible = false;
+      renderStatus(statusButton, torchSvg, flame, StatusViewState.ERROR);
+      updateControlAvailability();
+      renderInfo(infoPanel, describeError(error), InfoViewState.ERROR);
+    } finally {
+      statusSnapshotPromise = null;
+    }
+  })();
+
+  return statusSnapshotPromise;
+}
+
+function confirmStopAction() {
+  if (typeof window === 'undefined' || typeof window.confirm !== 'function') {
+    return true;
+  }
+
+  const firstConfirmation = window.confirm(t('confirm.stop.first'));
+  if (!firstConfirmation) {
+    return false;
+  }
+
+  return window.confirm(t('confirm.stop.second'));
 }
 
 function describeError(error) {

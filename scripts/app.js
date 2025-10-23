@@ -6,7 +6,7 @@ import {
   stopServer,
   ServerLifecycleState,
 } from './services/serverService.js';
-import { renderInfo, renderStatus, StatusViewState } from './ui/statusPresenter.js';
+import { InfoViewState, renderInfo, renderStatus, StatusViewState } from './ui/statusPresenter.js';
 
 const statusButton = document.querySelector('[data-role="status-button"]');
 const startButton = document.querySelector('[data-role="start-button"]');
@@ -19,6 +19,11 @@ let currentState = ServerLifecycleState.UNKNOWN;
 let statusEligible = false;
 let lastStatusTimestamp = 0;
 let busy = false;
+
+const defaultButtonLabels = new Map([
+  [startButton, startButton.textContent.trim()],
+  [stopButton, stopButton.textContent.trim()],
+]);
 
 initialise();
 
@@ -59,7 +64,7 @@ async function handleStatusRequest() {
   }
 
   setBusy(true, StatusViewState.CHECKING);
-  renderInfo(infoPanel, 'Consultando estado del servidor...');
+  renderInfo(infoPanel, 'Consultando estado del servidor...', InfoViewState.PENDING);
 
   try {
     const { state } = await fetchServerStatus();
@@ -68,18 +73,30 @@ async function handleStatusRequest() {
     lastStatusTimestamp = Date.now();
 
     if (state === ServerLifecycleState.ONLINE) {
-      renderInfo(infoPanel, 'Servidor en línea. Puedes solicitar STOP si lo necesitas.');
+      renderInfo(
+        infoPanel,
+        'Servidor en línea. Puedes solicitar STOP si lo necesitas.',
+        InfoViewState.SUCCESS,
+      );
     } else if (state === ServerLifecycleState.OFFLINE) {
-      renderInfo(infoPanel, 'Servidor detenido. Puedes solicitar START.');
+      renderInfo(
+        infoPanel,
+        'Servidor detenido. Puedes solicitar START.',
+        InfoViewState.SUCCESS,
+      );
     } else if (state === ServerLifecycleState.ERROR) {
-      renderInfo(infoPanel, 'El servidor informó de un error. Revisa los registros.');
+      renderInfo(
+        infoPanel,
+        'El servidor informó de un error. Revisa los registros.',
+        InfoViewState.ERROR,
+      );
     } else {
       renderInfo(infoPanel, 'Estado desconocido. Intenta de nuevo más tarde.');
     }
   } catch (error) {
     currentState = ServerLifecycleState.ERROR;
     statusEligible = false;
-    renderInfo(infoPanel, describeError(error));
+    renderInfo(infoPanel, describeError(error), InfoViewState.ERROR);
   } finally {
     setBusy(false);
   }
@@ -87,7 +104,7 @@ async function handleStatusRequest() {
 
 async function handleStartRequest() {
   if (!statusEligible || currentState !== ServerLifecycleState.OFFLINE) {
-    renderInfo(infoPanel, 'Debes obtener un estado OFFLINE antes de iniciar.');
+    renderInfo(infoPanel, 'Debes obtener un estado OFFLINE antes de iniciar.', InfoViewState.ERROR);
     return;
   }
 
@@ -95,12 +112,16 @@ async function handleStartRequest() {
     () => startServer(),
     'Solicitando el arranque del servidor...',
     'Petición de arranque enviada. Consulta STATUS para confirmarlo.',
+    {
+      sourceButton: startButton,
+      busyLabel: 'Starting...',
+    },
   );
 }
 
 async function handleStopRequest() {
   if (!statusEligible || currentState !== ServerLifecycleState.ONLINE) {
-    renderInfo(infoPanel, 'Debes obtener un estado ONLINE antes de detener.');
+    renderInfo(infoPanel, 'Debes obtener un estado ONLINE antes de detener.', InfoViewState.ERROR);
     return;
   }
 
@@ -108,24 +129,41 @@ async function handleStopRequest() {
     () => stopServer(),
     'Solicitando la detención del servidor...',
     'Petición de parada enviada. Consulta STATUS para confirmarlo.',
+    {
+      sourceButton: stopButton,
+      busyLabel: 'Stopping...',
+    },
   );
 }
 
-async function executeControlAction(action, pendingMessage, successMessage) {
-  setBusy(true);
-  renderInfo(infoPanel, pendingMessage);
+async function executeControlAction(
+  action,
+  pendingMessage,
+  successMessage,
+  options = {},
+) {
+  setBusy(true, StatusViewState.PROCESSING);
+  renderInfo(infoPanel, pendingMessage, InfoViewState.PENDING);
+
+  const { sourceButton, busyLabel } = options;
+  const restoreButtonState = sourceButton
+    ? setControlButtonBusy(sourceButton, busyLabel)
+    : null;
 
   try {
     await action();
     currentState = ServerLifecycleState.UNKNOWN;
     statusEligible = false;
     renderStatus(statusButton, torchSvg, flame, currentState);
-    renderInfo(infoPanel, successMessage);
+    renderInfo(infoPanel, successMessage, InfoViewState.SUCCESS);
   } catch (error) {
     currentState = ServerLifecycleState.ERROR;
     statusEligible = false;
-    renderInfo(infoPanel, describeError(error));
+    renderInfo(infoPanel, describeError(error), InfoViewState.ERROR);
   } finally {
+    if (restoreButtonState) {
+      restoreButtonState();
+    }
     setBusy(false);
   }
 }
@@ -134,6 +172,7 @@ function setBusy(value, viewState = currentState) {
   busy = value;
   updateControlAvailability();
   renderStatus(statusButton, torchSvg, flame, viewState);
+  statusButton.setAttribute('aria-busy', value ? 'true' : 'false');
 }
 
 function describeError(error) {
@@ -146,4 +185,20 @@ function describeError(error) {
   }
 
   return 'No se pudo completar la operación. Revisa la conexión.';
+}
+
+function setControlButtonBusy(button, customLabel) {
+  const label = customLabel ?? 'Working...';
+  button.dataset.loading = 'true';
+  button.setAttribute('aria-busy', 'true');
+  button.textContent = label;
+
+  return () => {
+    delete button.dataset.loading;
+    button.setAttribute('aria-busy', 'false');
+    const defaultLabel = defaultButtonLabels.get(button);
+    if (defaultLabel) {
+      button.textContent = defaultLabel;
+    }
+  };
 }

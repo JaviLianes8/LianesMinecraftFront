@@ -83,15 +83,26 @@ header {
   border-color: #f26d6d;
 }
 
-.status-checking {
-  color: #102742;
-  background: linear-gradient(135deg, #a5d8ff 0%, #74b9ff 100%);
-  border-color: #5a9dd8;
+.status-checking,
+.status-processing {
   position: relative;
   overflow: hidden;
 }
 
-.status-checking::after {
+.status-checking {
+  color: #102742;
+  background: linear-gradient(135deg, #a5d8ff 0%, #74b9ff 100%);
+  border-color: #5a9dd8;
+}
+
+.status-processing {
+  color: #2d1a00;
+  background: linear-gradient(135deg, #ffd27f 0%, #ffb347 100%);
+  border-color: #e38b2d;
+}
+
+.status-checking::after,
+.status-processing::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -158,6 +169,7 @@ main {
   font-weight: 700;
   cursor: pointer;
   transition: transform 0.08s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  position: relative;
 }
 
 .control-button:active {
@@ -167,6 +179,26 @@ main {
 .control-button[disabled] {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.control-button[data-loading='true'] {
+  padding-left: 42px;
+  opacity: 1;
+  cursor: progress;
+}
+
+.control-button[data-loading='true']::before {
+  content: '';
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  margin-top: -8px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: rgba(255, 255, 255, 0.85);
+  animation: spin 0.8s linear infinite;
 }
 
 .control-button--start {
@@ -208,6 +240,15 @@ main {
 
 .flame-on {
   opacity: 1;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes flick {
@@ -256,6 +297,37 @@ main {
   color: #aab3c2;
   text-align: center;
   min-height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.info-panel::before {
+  content: '';
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(160, 207, 255, 0.35);
+  border-top-color: rgba(160, 207, 255, 0.8);
+  animation: spin 0.9s linear infinite;
+  display: none;
+}
+
+.info-panel[data-state='pending'] {
+  color: #a0cfff;
+}
+
+.info-panel[data-state='pending']::before {
+  display: inline-block;
+}
+
+.info-panel[data-state='success'] {
+  color: var(--ok);
+}
+
+.info-panel[data-state='error'] {
+  color: var(--bad);
 }
 
 footer {

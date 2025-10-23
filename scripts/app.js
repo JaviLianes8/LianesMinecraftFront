@@ -29,7 +29,7 @@ initialise();
 
 function initialise() {
   renderStatus(statusButton, torchSvg, flame, currentState);
-  renderInfo(infoPanel, 'Pulsa STATUS para comprobar el servidor.');
+  renderInfo(infoPanel, 'Press STATUS to check the server.');
   updateControlAvailability();
 
   statusButton.addEventListener('click', handleStatusRequest);
@@ -59,12 +59,12 @@ async function handleStatusRequest() {
   const elapsed = now - lastStatusTimestamp;
   if (elapsed < STATUS_MIN_INTERVAL_MS) {
     const waitSeconds = Math.ceil((STATUS_MIN_INTERVAL_MS - elapsed) / 1000);
-    renderInfo(infoPanel, `Debes esperar ${waitSeconds}s antes de volver a consultar.`);
+    renderInfo(infoPanel, `You must wait ${waitSeconds}s before requesting STATUS again.`);
     return;
   }
 
   setBusy(true, StatusViewState.CHECKING);
-  renderInfo(infoPanel, 'Consultando estado del servidor...', InfoViewState.PENDING);
+  renderInfo(infoPanel, 'Checking server status...', InfoViewState.PENDING);
 
   try {
     const { state } = await fetchServerStatus();
@@ -75,23 +75,23 @@ async function handleStatusRequest() {
     if (state === ServerLifecycleState.ONLINE) {
       renderInfo(
         infoPanel,
-        'Servidor en línea. Puedes solicitar STOP si lo necesitas.',
+        'Server is online. You can request STOP if needed.',
         InfoViewState.SUCCESS,
       );
     } else if (state === ServerLifecycleState.OFFLINE) {
       renderInfo(
         infoPanel,
-        'Servidor detenido. Puedes solicitar START.',
+        'Server is offline. You can request START.',
         InfoViewState.SUCCESS,
       );
     } else if (state === ServerLifecycleState.ERROR) {
       renderInfo(
         infoPanel,
-        'El servidor informó de un error. Revisa los registros.',
+        'The server reported an error. Review the logs.',
         InfoViewState.ERROR,
       );
     } else {
-      renderInfo(infoPanel, 'Estado desconocido. Intenta de nuevo más tarde.');
+      renderInfo(infoPanel, 'Status is unknown. Try again later.');
     }
   } catch (error) {
     currentState = ServerLifecycleState.ERROR;
@@ -104,14 +104,14 @@ async function handleStatusRequest() {
 
 async function handleStartRequest() {
   if (!statusEligible || currentState !== ServerLifecycleState.OFFLINE) {
-    renderInfo(infoPanel, 'Debes obtener un estado OFFLINE antes de iniciar.', InfoViewState.ERROR);
+    renderInfo(infoPanel, 'You must obtain an OFFLINE status before starting.', InfoViewState.ERROR);
     return;
   }
 
   await executeControlAction(
     () => startServer(),
-    'Solicitando el arranque del servidor...',
-    'Petición de arranque enviada. Consulta STATUS para confirmarlo.',
+    'Requesting server startup...',
+    'Startup request sent. Check STATUS to confirm.',
     {
       sourceButton: startButton,
       busyLabel: 'Starting...',
@@ -121,14 +121,14 @@ async function handleStartRequest() {
 
 async function handleStopRequest() {
   if (!statusEligible || currentState !== ServerLifecycleState.ONLINE) {
-    renderInfo(infoPanel, 'Debes obtener un estado ONLINE antes de detener.', InfoViewState.ERROR);
+    renderInfo(infoPanel, 'You must obtain an ONLINE status before stopping.', InfoViewState.ERROR);
     return;
   }
 
   await executeControlAction(
     () => stopServer(),
-    'Solicitando la detención del servidor...',
-    'Petición de parada enviada. Consulta STATUS para confirmarlo.',
+    'Requesting server shutdown...',
+    'Shutdown request sent. Check STATUS to confirm.',
     {
       sourceButton: stopButton,
       busyLabel: 'Stopping...',
@@ -177,14 +177,14 @@ function setBusy(value, viewState = currentState) {
 
 function describeError(error) {
   if (error instanceof TimeoutError) {
-    return 'Tiempo de espera agotado al contactar con el servidor.';
+    return 'Timed out while contacting the server.';
   }
 
   if (error instanceof HttpError) {
-    return `El servidor respondió con un error (${error.status}).`;
+    return `The server responded with an error (${error.status}).`;
   }
 
-  return 'No se pudo completar la operación. Revisa la conexión.';
+  return 'The operation could not be completed. Check the connection.';
 }
 
 function setControlButtonBusy(button, customLabel) {

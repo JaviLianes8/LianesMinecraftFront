@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -20,7 +20,9 @@
 
     <main>
       <section class="control-card" aria-labelledby="mainTitle">
-        <h1 id="mainTitle" class="control-card__title">Minecraft Torch — Server Control</h1>
+        <h1 id="mainTitle" class="control-card__title" data-role="main-title">
+          Minecraft Torch — Server Control
+        </h1>
 
         <div class="torch-container">
           <svg
@@ -67,12 +69,22 @@
         </div>
 
         <div class="downloads" aria-label="Downloads">
-          <strong>Downloads:</strong>
-          <a href="http://naseevvee.duckdns.org:8000/api/mods/download">Client Mods</a>
-          <a href="http://naseevvee.duckdns.org:8000/api/neoforge/download">NeoForge</a>
+          <strong data-role="downloads-label">Downloads:</strong>
+          <a
+            href="http://naseevvee.duckdns.org:8000/api/mods/download"
+            data-role="download-mods"
+          >
+            Client Mods
+          </a>
+          <a
+            href="http://naseevvee.duckdns.org:8000/api/neoforge/download"
+            data-role="download-neoforge"
+          >
+            NeoForge
+          </a>
         </div>
 
-        <p class="info-panel" data-role="info-panel"></p>
+        <p class="info-panel" data-role="info-panel" role="status" aria-live="polite"></p>
       </section>
     </main>
 

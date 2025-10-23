@@ -6,6 +6,7 @@ import {
   stopServer,
   ServerLifecycleState,
 } from './services/serverService.js';
+import { getActiveLocale, translate as t } from './ui/i18n.js';
 import { InfoViewState, renderInfo, renderStatus, StatusViewState } from './ui/statusPresenter.js';
 
 const statusButton = document.querySelector('[data-role="status-button"]');
@@ -20,16 +21,15 @@ let statusEligible = false;
 let lastStatusTimestamp = 0;
 let busy = false;
 
-const defaultButtonLabels = new Map([
-  [startButton, startButton.textContent.trim()],
-  [stopButton, stopButton.textContent.trim()],
-]);
+const defaultButtonLabels = new Map();
 
 initialise();
 
 function initialise() {
+  applyLocaleToStaticContent();
+  cacheDefaultButtonLabels();
   renderStatus(statusButton, torchSvg, flame, currentState);
-  renderInfo(infoPanel, 'Press STATUS to check the server.');
+  renderInfo(infoPanel, t('info.initialPrompt'));
   updateControlAvailability();
 
   statusButton.addEventListener('click', handleStatusRequest);
@@ -37,17 +37,71 @@ function initialise() {
   stopButton.addEventListener('click', handleStopRequest);
 }
 
+function applyLocaleToStaticContent() {
+  const locale = getActiveLocale();
+  document.documentElement.lang = locale;
+  document.title = t('ui.title');
+
+  const mainTitle = document.querySelector('[data-role="main-title"]');
+  if (mainTitle) {
+    mainTitle.textContent = t('ui.title');
+  }
+
+  startButton.textContent = t('ui.controls.start');
+  startButton.setAttribute('aria-label', startButton.textContent);
+
+  stopButton.textContent = t('ui.controls.stop');
+  stopButton.setAttribute('aria-label', stopButton.textContent);
+
+  const downloadsLabel = document.querySelector('[data-role="downloads-label"]');
+  if (downloadsLabel) {
+    downloadsLabel.textContent = t('ui.downloads.label');
+  }
+
+  const modsLink = document.querySelector('[data-role="download-mods"]');
+  if (modsLink) {
+    modsLink.textContent = t('ui.downloads.mods');
+  }
+
+  const neoforgeLink = document.querySelector('[data-role="download-neoforge"]');
+  if (neoforgeLink) {
+    neoforgeLink.textContent = t('ui.downloads.neoforge');
+  }
+}
+
+function cacheDefaultButtonLabels() {
+  defaultButtonLabels.set(startButton, startButton.textContent.trim());
+  defaultButtonLabels.set(stopButton, stopButton.textContent.trim());
+}
+
 function updateControlAvailability() {
   statusButton.toggleAttribute('disabled', busy);
   statusButton.setAttribute('aria-disabled', busy ? 'true' : 'false');
+  updateButtonTooltip(statusButton, busy ? t('info.busy') : null);
 
   const startDisabled = busy || !statusEligible || currentState !== ServerLifecycleState.OFFLINE;
   startButton.toggleAttribute('disabled', startDisabled);
   startButton.setAttribute('aria-disabled', startDisabled ? 'true' : 'false');
+  updateButtonTooltip(
+    startButton,
+    busy
+      ? t('info.busy')
+      : !statusEligible || currentState !== ServerLifecycleState.OFFLINE
+        ? t('info.start.requireOffline')
+        : null,
+  );
 
   const stopDisabled = busy || !statusEligible || currentState !== ServerLifecycleState.ONLINE;
   stopButton.toggleAttribute('disabled', stopDisabled);
   stopButton.setAttribute('aria-disabled', stopDisabled ? 'true' : 'false');
+  updateButtonTooltip(
+    stopButton,
+    busy
+      ? t('info.busy')
+      : !statusEligible || currentState !== ServerLifecycleState.ONLINE
+        ? t('info.stop.requireOnline')
+        : null,
+  );
 }
 
 async function handleStatusRequest() {
@@ -59,12 +113,12 @@ async function handleStatusRequest() {
   const elapsed = now - lastStatusTimestamp;
   if (elapsed < STATUS_MIN_INTERVAL_MS) {
     const waitSeconds = Math.ceil((STATUS_MIN_INTERVAL_MS - elapsed) / 1000);
-    renderInfo(infoPanel, `You must wait ${waitSeconds}s before requesting STATUS again.`);
+    renderInfo(infoPanel, t('info.wait', { seconds: waitSeconds }));
     return;
   }
 
   setBusy(true, StatusViewState.CHECKING);
-  renderInfo(infoPanel, 'Checking server status...', InfoViewState.PENDING);
+  renderInfo(infoPanel, t('info.checking'), InfoViewState.PENDING);
 
   try {
     const { state } = await fetchServerStatus();
@@ -73,25 +127,13 @@ async function handleStatusRequest() {
     lastStatusTimestamp = Date.now();
 
     if (state === ServerLifecycleState.ONLINE) {
-      renderInfo(
-        infoPanel,
-        'Server is online. You can request STOP if needed.',
-        InfoViewState.SUCCESS,
-      );
+      renderInfo(infoPanel, t('info.online'), InfoViewState.SUCCESS);
     } else if (state === ServerLifecycleState.OFFLINE) {
-      renderInfo(
-        infoPanel,
-        'Server is offline. You can request START.',
-        InfoViewState.SUCCESS,
-      );
+      renderInfo(infoPanel, t('info.offline'), InfoViewState.SUCCESS);
     } else if (state === ServerLifecycleState.ERROR) {
-      renderInfo(
-        infoPanel,
-        'The server reported an error. Review the logs.',
-        InfoViewState.ERROR,
-      );
+      renderInfo(infoPanel, t('info.error'), InfoViewState.ERROR);
     } else {
-      renderInfo(infoPanel, 'Status is unknown. Try again later.');
+      renderInfo(infoPanel, t('info.unknown'));
     }
   } catch (error) {
     currentState = ServerLifecycleState.ERROR;
@@ -104,34 +146,34 @@ async function handleStatusRequest() {
 
 async function handleStartRequest() {
   if (!statusEligible || currentState !== ServerLifecycleState.OFFLINE) {
-    renderInfo(infoPanel, 'You must obtain an OFFLINE status before starting.', InfoViewState.ERROR);
+    renderInfo(infoPanel, t('info.start.requireOffline'), InfoViewState.ERROR);
     return;
   }
 
   await executeControlAction(
     () => startServer(),
-    'Requesting server startup...',
-    'Startup request sent. Check STATUS to confirm.',
+    t('info.start.pending'),
+    t('info.start.success'),
     {
       sourceButton: startButton,
-      busyLabel: 'Starting...',
+      busyLabel: t('ui.controls.start.busy'),
     },
   );
 }
 
 async function handleStopRequest() {
   if (!statusEligible || currentState !== ServerLifecycleState.ONLINE) {
-    renderInfo(infoPanel, 'You must obtain an ONLINE status before stopping.', InfoViewState.ERROR);
+    renderInfo(infoPanel, t('info.stop.requireOnline'), InfoViewState.ERROR);
     return;
   }
 
   await executeControlAction(
     () => stopServer(),
-    'Requesting server shutdown...',
-    'Shutdown request sent. Check STATUS to confirm.',
+    t('info.stop.pending'),
+    t('info.stop.success'),
     {
       sourceButton: stopButton,
-      busyLabel: 'Stopping...',
+      busyLabel: t('ui.controls.stop.busy'),
     },
   );
 }
@@ -177,18 +219,43 @@ function setBusy(value, viewState = currentState) {
 
 function describeError(error) {
   if (error instanceof TimeoutError) {
-    return 'Timed out while contacting the server.';
+    return t('error.timeout');
   }
 
   if (error instanceof HttpError) {
-    return `The server responded with an error (${error.status}).`;
+    const description = describeHttpStatus(error.status);
+    if (description) {
+      return t('error.httpWithDescription', { status: error.status, description });
+    }
+    return t('error.httpGeneric', { status: error.status });
   }
 
-  return 'The operation could not be completed. Check the connection.';
+  if (error instanceof TypeError) {
+    return t('error.network');
+  }
+
+  return t('error.generic');
+}
+
+function describeHttpStatus(status) {
+  if (typeof status !== 'number' || Number.isNaN(status) || status <= 0) {
+    return '';
+  }
+  const key = `http.${status}`;
+  const translation = t(key);
+  return translation === key ? '' : translation;
+}
+
+function updateButtonTooltip(button, message) {
+  if (message) {
+    button.title = message;
+  } else {
+    button.removeAttribute('title');
+  }
 }
 
 function setControlButtonBusy(button, customLabel) {
-  const label = customLabel ?? 'Working...';
+  const label = customLabel ?? t('ui.controls.generic.busy');
   button.dataset.loading = 'true';
   button.setAttribute('aria-busy', 'true');
   button.textContent = label;

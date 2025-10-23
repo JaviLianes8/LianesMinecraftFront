@@ -1,4 +1,4 @@
-import { API_BASE_URL, REQUEST_TIMEOUT_MS } from './config.js';
+import { REQUEST_TIMEOUT_MS, buildApiUrl } from './config.js';
 
 /**
  * Error raised when the API responds with a non-successful status code.
@@ -74,7 +74,8 @@ async function performFetchRequest({ path, method, body, headers, signal, timeou
   const timeoutId = setTimeout(() => controller.abort(), timeout);
 
   try {
-    const response = await fetch(resolveApiUrl(path), {
+    const endpoint = resolveApiUrl(path);
+    const response = await fetch(endpoint, {
       method,
       body,
       headers,
@@ -210,13 +211,7 @@ function openTransportWindow() {
  */
 function resolveApiUrl(path) {
   try {
-    const normalisedBase = API_BASE_URL.endsWith('/') ? API_BASE_URL : `${API_BASE_URL}/`;
-    const baseContext = typeof window !== 'undefined' && window.location
-      ? window.location.href
-      : normalisedBase;
-    const baseUrl = new URL(normalisedBase, baseContext);
-    const sanitisedPath = typeof path === 'string' ? path.replace(/^\//, '') : '';
-    return new URL(sanitisedPath, baseUrl).toString();
+    return buildApiUrl(path);
   } catch (error) {
     throw new HttpError('Unable to resolve API endpoint URL.', 0, error instanceof Error ? error.message : error);
   }

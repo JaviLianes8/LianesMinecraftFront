@@ -1,4 +1,4 @@
-import { STATUS_MIN_INTERVAL_MS } from './config.js';
+import { STATUS_MIN_INTERVAL_MS, buildApiUrl } from './config.js';
 import { HttpError, TimeoutError } from './httpClient.js';
 import {
   fetchServerStatus,
@@ -61,11 +61,13 @@ function applyLocaleToStaticContent() {
   const modsLink = document.querySelector('[data-role="download-mods"]');
   if (modsLink) {
     modsLink.textContent = t('ui.downloads.mods');
+    updateDownloadLinkHref(modsLink, 'mods/download');
   }
 
   const neoforgeLink = document.querySelector('[data-role="download-neoforge"]');
   if (neoforgeLink) {
     neoforgeLink.textContent = t('ui.downloads.neoforge');
+    updateDownloadLinkHref(neoforgeLink, 'neoforge/download');
   }
 }
 
@@ -102,6 +104,14 @@ function updateControlAvailability() {
         ? t('info.stop.requireOnline')
         : null,
   );
+}
+
+function updateDownloadLinkHref(anchor, resourcePath) {
+  try {
+    anchor.href = buildApiUrl(resourcePath);
+  } catch (error) {
+    console.error('Unable to resolve download URL for', resourcePath, error);
+  }
 }
 
 async function handleStatusRequest() {

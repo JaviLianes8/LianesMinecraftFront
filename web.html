@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Minecraft Torch — Server Control</title>
+<style>
+  :root{
+    --bg: #0e0f14;
+    --panel:#141821;
+    --text:#e8e6e3;
+    --ok:#23d18b;
+    --bad:#ff4d4d;
+    --border:#262b36;
+    --shadow:0 10px 30px rgba(0,0,0,.45);
+    --glow-on:0 0 18px rgba(255,170,64,.55), 0 0 55px rgba(255,120,32,.35);
+  }
+  html,body{
+    height:100%;
+    margin:0;
+    font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Arial;
+    background: radial-gradient(1300px 700px at 50% 10%, #161a24 0%, #0d1018 60%, var(--bg) 100%);
+    color:var(--text);
+  }
+  .wrap{
+    min-height:100%;
+    display:grid;
+    grid-template-rows:auto 1fr auto;
+  }
+
+  /* STATUS button (top-right) */
+  .status-bar{ position:relative; padding: 16px 20px; }
+  .status-btn{
+    position:absolute; right:20px; top:14px;
+    font-size: clamp(18px, 3vw, 28px);
+    font-weight: 800; letter-spacing:.6px;
+    background:#151a24; color:var(--text);
+    border:2px solid var(--border); border-radius:12px;
+    padding: 10px 18px; cursor:pointer;
+    box-shadow: var(--shadow);
+    transition: transform .1s ease, opacity .2s ease, background .2s ease, border-color .2s ease;
+  }
+  .status-btn:active{ transform: scale(.98); }
+  .status-btn[disabled]{ opacity:.6; cursor:not-allowed; }
+
+  .status-online { color:#052515; background: linear-gradient(#35e6a2,#21cb89); border-color:#1fa77b; }
+  .status-offline{ color:#2b0b0b; background: linear-gradient(#ff7b7b,#ff5757); border-color:#d73b3b; }
+  .status-undefined{ color:#1f2430; background: linear-gradient(#e4e7ef,#c6cbda); border-color:#a9afc2; }
+  .status-error{ color:#331010; background: linear-gradient(#ffc9c9,#ff9d9d); border-color:#f26d6d; }
+
+  /* Main card */
+  .main{ display:grid; place-items:center; padding: 30px 16px 10px; }
+  .card{
+    width:min(980px, 92vw); background: #121621; border: 1px solid var(--border);
+    border-radius: 18px; padding: 26px; box-shadow: var(--shadow);
+    display:grid; gap: 20px; align-items:center; justify-items:center; position:relative;
+  }
+  .title{ font-weight:800; letter-spacing:.4px; font-size: clamp(22px, 3.2vw, 32px); margin:0; text-align:center; }
+
+  /* Buttons */
+  .controls{ display:flex; gap:12px; flex-wrap:wrap; justify-content:center; }
+  .btn{
+    padding: 12px 18px; border-radius: 12px; border:1px solid var(--border);
+    background:#141a25; color:var(--text); font-weight:700; cursor:pointer;
+    transition: transform .08s ease, box-shadow .2s ease, opacity .2s ease;
+  }
+  .btn:active{ transform: translateY(1px); }
+  .btn[disabled]{ opacity:.6; cursor:not-allowed; }
+  .start { border-color:#2a6b45; }
+  .start:hover{ box-shadow:0 0 0 3px rgba(35,209,139,.15) inset; }
+  .stop  { border-color:#743333; }
+  .stop:hover{ box-shadow:0 0 0 3px rgba(255,77,77,.15) inset; }
+
+  /* Torch */
+  .torch-wrap{ display:grid; place-items:center; padding:14px; }
+  .torch{ width:min(200px, 40vw); filter: drop-shadow(0 12px 22px rgba(0,0,0,.6)); transition: filter .2s ease; }
+  .torch-on{ filter: drop-shadow(0 12px 22px rgba(0,0,0,.6)) drop-shadow(var(--glow-on)); }
+  .flame{ opacity:0; transition: opacity .2s ease; }
+  .flame-on{ opacity:1; }
+  @keyframes flick{ 0%{ transform: translateY(0) } 50%{ transform: translateY(-2%) } 100%{ transform: translateY(0) } }
+  .fl1{ animation: flick .12s infinite ease-in-out; }
+  .fl2{ animation: flick .14s infinite ease-in-out .03s; }
+  .fl3{ animation: flick .16s infinite ease-in-out .05s; }
+
+  /* Downloads */
+  .downloads{
+    width:100%; border-top:1px dashed #272c37; padding-top:12px;
+    display:flex; gap:16px; justify-content:center; flex-wrap:wrap;
+  }
+  .downloads a{ color:#a0cfff; text-decoration: underline; text-underline-offset: 3px; }
+
+  /* Info line */
+  .info{ font-size: 12px; color:#aab3c2; text-align:center; min-height: 18px; }
+
+  /* Footer */
+  .foot{ text-align:center; padding: 16px; color:#9aa3b2; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Big STATUS button (top-right). Starts as UNDEFINED. -->
+  <div class="status-bar">
+    <button id="statusBtn" class="status-btn status-undefined" aria-live="polite" aria-pressed="false">STATUS: UNDEFINED</button>
+  </div>
+
+  <main class="main">
+    <section class="card" id="card">
+      <h1 class="title">Minecraft Torch — Server Control</h1>
+
+      <!-- Torch (pixel SVG, no assets). Flame on/off is visual only, based on last user action. -->
+      <div class="torch-wrap">
+        <svg id="torchSvg" class="torch" viewBox="0 0 64 128" role="img" aria-labelledby="torchTitle torchDesc">
+          <title id="torchTitle">Minecraft Torch</title>
+          <desc id="torchDesc">Pixelated torch with animated flame quads</desc>
+
+          <!-- Stick -->
+          <rect x="28" y="36" width="8" height="84" fill="#7a4e2a"/>
+          <rect x="26" y="44" width="12" height="8" fill="#5f3c1f"/>
+          <rect x="26" y="68" width="12" height="8" fill="#5f3c1f"/>
+          <rect x="26" y="92" width="12" height="8" fill="#5f3c1f"/>
+          <rect x="30" y="120" width="4" height="6" fill="#3a2616"/>
+
+          <!-- Head -->
+          <rect x="22" y="24" width="20" height="12" fill="#4f4f4f"/>
+          <rect x="20" y="20" width="24" height="8" fill="#6a6a6a"/>
+          <rect x="24" y="16" width="16" height="6" fill="#808080"/>
+
+          <!-- Flame -->
+          <g id="flame" class="flame">
+            <rect class="fl1" x="26" y="2" width="12" height="12" fill="#ff9c2a"/>
+            <rect class="fl2" x="22" y="6" width="8"  height="8"  fill="#ff7a1a"/>
+            <rect class="fl3" x="38" y="6" width="8"  height="8"  fill="#ff7a1a"/>
+            <rect class="fl2" x="30" y="6" width="6" height="6" fill="#ffd966"/>
+            <rect class="fl1" x="28" y="10" width="4" height="4" fill="#ffe69a"/>
+            <rect class="fl3" x="34" y="10" width="4" height="4" fill="#ffe69a"/>
+            <rect class="fl1" x="18" y="10" width="3" height="3" fill="#ffd966"/>
+            <rect class="fl2" x="44" y="10" width="3" height="3" fill="#ffd966"/>
+            <rect class="fl3" x="30" y="0"  width="3" height="3" fill="#fff2c2"/>
+          </g>
+        </svg>
+      </div>
+
+      <!-- Controls -->
+      <div class="controls" aria-label="Server controls">
+        <!-- We use forms that submit to a hidden iframe.
+             This performs real POST/GET requests to your backend without XHR/fetch (so no CORS preflight).
+             JS blocks/permits submits to satisfy your rules. -->
+        <form id="formStart" action="http://naseevvee.duckdns.org:8000/api/server/start" method="post" target="actionFrame">
+          <button id="startBtn" class="btn start" type="submit">Start Server</button>
+        </form>
+        <form id="formStop" action="http://naseevvee.duckdns.org:8000/api/server/stop" method="post" target="actionFrame">
+          <button id="stopBtn" class="btn stop" type="submit">Stop Server</button>
+        </form>
+      </div>
+
+      <!-- Downloads (work as direct links already) -->
+      <div class="downloads" aria-label="Downloads">
+        <strong>Downloads:</strong>
+        <a href="http://naseevvee.duckdns.org:8000/api/mods/download">Client Mods</a>
+        <a href="http://naseevvee.duckdns.org:8000/api/neoforge/download">NeoForge</a>
+      </div>
+
+      <!-- Info line for hints/errors -->
+      <div class="info" id="info"></div>
+
+      <!-- Hidden GET form for STATUS (targets the iframe) -->
+      <form id="formStatus" action="http://naseevvee.duckdns.org:8000/api/server/status" method="get" target="actionFrame"></form>
+
+      <!-- Hidden iframe to receive all requests (navigation, not XHR). -->
+      <iframe name="actionFrame" id="actionFrame" style="display:none;" title="Action Frame"></iframe>
+
+      <!-- NoScript fallback (will navigate away). -->
+      <noscript>
+        <p>JavaScript is required for safety rules. Fallback links below will navigate:</p>
+        <p>
+          <a href="http://naseevvee.duckdns.org:8000/api/server/status">STATUS</a> •
+          <a href="http://naseevvee.duckdns.org:8000/api/server/start">START</a> •
+          <a href="http://naseevvee.duckdns.org:8000/api/server/stop">STOP</a>
+        </p>
+      </noscript>
+    </section>
+  </main>
+
+  <footer class="foot">UI uses form submissions to a hidden iframe (no fetch, curl-like behavior).</footer>
+</div>
+
+<script>
+/* =============================
+   Client-side safety controller
+   =============================
+   - No fetch/XHR; all requests are real form submits to a hidden iframe (curl-like).
+   - Enforces:
+     * STATUS cooldown: 1/minute
+     * Must press STATUS at least once before Start/Stop
+     * Initial state: UNDEFINED
+     * After Start: lock all buttons for 2 minutes
+*/
+
+const COOLDOWN_STATUS_MS = 60_000;   // 1 minute
+const LOCK_AFTER_START_MS = 120_000; // 2 minutes
+
+// Elements
+const statusBtn  = document.getElementById('statusBtn');
+const formStatus = document.getElementById('formStatus');
+const startBtn   = document.getElementById('startBtn');
+const stopBtn    = document.getElementById('stopBtn');
+const formStart  = document.getElementById('formStart');
+const formStop   = document.getElementById('formStop');
+const infoLine   = document.getElementById('info');
+const torchSvg   = document.getElementById('torchSvg');
+const flame      = document.getElementById('flame');
+
+// State
+let lastStatusAt = 0;
+let statusPressedOnce = false;
+let lockUntil = 0;
+let visualOnline = false; // purely visual torch state
+
+// Helpers
+const now = () => Date.now();
+const isLocked = () => now() < lockUntil;
+
+function setInfo(msg){ infoLine.textContent = msg || ''; }
+
+function setStatusClass(name){
+  statusBtn.classList.remove('status-online','status-offline','status-undefined','status-error');
+  statusBtn.classList.add(name);
+}
+
+function setStatusLabel(label){
+  statusBtn.textContent = 'STATUS: ' + label;
+  if (label === 'ONLINE')  { setStatusClass('status-online');  visualSetTorch(true);  return; }
+  if (label === 'OFFLINE') { setStatusClass('status-offline'); visualSetTorch(false); return; }
+  if (label === 'UNDEFINED'){ setStatusClass('status-undefined'); visualSetTorch(false); return; }
+  if (label === 'ERROR')   { setStatusClass('status-error');    visualSetTorch(false); return; }
+  // Transitional labels keep previous torch visual
+}
+
+function setAllDisabled(disabled){
+  [statusBtn, startBtn, stopBtn].forEach(b=>{
+    b.toggleAttribute('disabled', disabled);
+    b.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+  });
+}
+
+function visualSetTorch(on){
+  visualOnline = on;
+  torchSvg.classList.toggle('torch-on', on);
+  flame.classList.toggle('flame-on', on);
+}
+
+// Wire STATUS with cooldown and iframe submit
+statusBtn.addEventListener('click', (e)=>{
+  e.preventDefault();
+  if (isLocked()){
+    setInfo('Controls locked for safety, please try later.');
+    return;
+  }
+  const elapsed = now() - lastStatusAt;
+  if (elapsed < COOLDOWN_STATUS_MS){
+    const remain = Math.ceil((COOLDOWN_STATUS_MS - elapsed)/1000);
+    setInfo(`STATUS rate-limited: wait ${remain}s.`);
+    return;
+  }
+  // Mark as pressed and rate-limit
+  statusPressedOnce = true;
+  lastStatusAt = now();
+
+  // Visual feedback (we cannot read cross-origin response)
+  setStatusLabel('UNDEFINED'); // keep your requirement: default/unknown
+  setInfo('STATUS requested (1/min).');
+
+  // Submit real GET to backend (no fetch)
+  formStatus.submit();
+});
+
+// Start: requires STATUS pressed; locks all for 2 minutes; submit POST via iframe
+formStart.addEventListener('submit', (e)=>{
+  // Intercept to enforce rules; if pass, we let it submit
+  if (isLocked()){
+    e.preventDefault();
+    setInfo('Controls locked for safety, please try later.');
+    return;
+  }
+  if (!statusPressedOnce){
+    e.preventDefault();
+    setInfo('Press STATUS first (safety rule).');
+    return;
+  }
+  // Lock everything for 2 minutes
+  lockUntil = now() + LOCK_AFTER_START_MS;
+  setAllDisabled(true);
+  setStatusLabel('UNDEFINED'); // we don’t auto-guess
+  setInfo('Start requested. Controls locked for 2 minutes.');
+  // Visual torch ON to reflect intention (purely cosmetic)
+  visualSetTorch(true);
+
+  // Unlock after lock window
+  setTimeout(()=>{
+    setAllDisabled(false);
+    setInfo('You can use controls again. Consider pressing STATUS.');
+  }, LOCK_AFTER_START_MS + 50);
+});
+
+// Stop: requires STATUS pressed; submit POST via iframe
+formStop.addEventListener('submit', (e)=>{
+  if (isLocked()){
+    e.preventDefault();
+    setInfo('Controls locked for safety, please try later.');
+    return;
+  }
+  if (!statusPressedOnce){
+    e.preventDefault();
+    setInfo('Press STATUS first (safety rule).');
+    return;
+  }
+  setStatusLabel('UNDEFINED'); // keep unknown until user checks STATUS
+  setInfo('Stop requested. Consider pressing STATUS (respecting cooldown).');
+  // Visual torch OFF to reflect intention
+  visualSetTorch(false);
+});
+
+// Keyboard a11y for the big STATUS button
+statusBtn.addEventListener('keydown', (e)=>{
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); statusBtn.click(); }
+});
+
+// Initial UI
+setStatusLabel('UNDEFINED');
+setInfo('Press STATUS (max once per minute).');
+visualSetTorch(false);
+</script>
+</body>
+</html>

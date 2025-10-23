@@ -1,4 +1,5 @@
 import { ServerLifecycleState } from '../services/serverService.js';
+import { translate } from './i18n.js';
 
 /**
  * Enumerates the visual states supported by the status button.
@@ -25,13 +26,13 @@ export const InfoViewState = Object.freeze({
 
 const KNOWN_INFO_STATES = new Set(Object.values(InfoViewState));
 
-const STATUS_LABELS = {
-  [StatusViewState.UNKNOWN]: 'UNKNOWN',
-  [StatusViewState.ONLINE]: 'ONLINE',
-  [StatusViewState.OFFLINE]: 'OFFLINE',
-  [StatusViewState.ERROR]: 'ERROR',
-  [StatusViewState.CHECKING]: 'CHECKING...',
-  [StatusViewState.PROCESSING]: 'PROCESSING...',
+const STATUS_LABEL_KEYS = {
+  [StatusViewState.UNKNOWN]: 'ui.statusButton.label.UNKNOWN',
+  [StatusViewState.ONLINE]: 'ui.statusButton.label.ONLINE',
+  [StatusViewState.OFFLINE]: 'ui.statusButton.label.OFFLINE',
+  [StatusViewState.ERROR]: 'ui.statusButton.label.ERROR',
+  [StatusViewState.CHECKING]: 'ui.statusButton.label.CHECKING',
+  [StatusViewState.PROCESSING]: 'ui.statusButton.label.PROCESSING',
 };
 
 const STATUS_CLASSES = {
@@ -52,8 +53,12 @@ const STATUS_CLASSES = {
  * @param {string} state Current status view state.
  */
 export function renderStatus(button, torch, flame, state) {
-  const label = STATUS_LABELS[state] ?? STATUS_LABELS[StatusViewState.UNKNOWN];
-  button.textContent = `STATUS: ${label}`;
+  const labelKey = STATUS_LABEL_KEYS[state] ?? STATUS_LABEL_KEYS[StatusViewState.UNKNOWN];
+  const prefix = translate('ui.statusButton.prefix');
+  const label = translate(labelKey);
+  button.textContent = `${prefix}: ${label}`;
+  button.setAttribute('aria-label', button.textContent);
+  button.dataset.viewState = state;
 
   button.classList.remove(...Object.values(STATUS_CLASSES));
   button.classList.add(STATUS_CLASSES[state] ?? STATUS_CLASSES[StatusViewState.UNKNOWN]);

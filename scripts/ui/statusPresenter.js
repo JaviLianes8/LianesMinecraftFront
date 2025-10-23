@@ -8,7 +8,22 @@ import { ServerLifecycleState } from '../services/serverService.js';
 export const StatusViewState = Object.freeze({
   ...ServerLifecycleState,
   CHECKING: 'CHECKING',
+  PROCESSING: 'PROCESSING',
 });
+
+/**
+ * Enumerates the contextual visual states supported by the info panel.
+ * @readonly
+ * @enum {string}
+ */
+export const InfoViewState = Object.freeze({
+  DEFAULT: 'default',
+  PENDING: 'pending',
+  SUCCESS: 'success',
+  ERROR: 'error',
+});
+
+const KNOWN_INFO_STATES = new Set(Object.values(InfoViewState));
 
 const STATUS_LABELS = {
   [StatusViewState.UNKNOWN]: 'UNKNOWN',
@@ -16,6 +31,7 @@ const STATUS_LABELS = {
   [StatusViewState.OFFLINE]: 'OFFLINE',
   [StatusViewState.ERROR]: 'ERROR',
   [StatusViewState.CHECKING]: 'CHECKING...',
+  [StatusViewState.PROCESSING]: 'PROCESSING...',
 };
 
 const STATUS_CLASSES = {
@@ -24,6 +40,7 @@ const STATUS_CLASSES = {
   [StatusViewState.OFFLINE]: 'status-offline',
   [StatusViewState.ERROR]: 'status-error',
   [StatusViewState.CHECKING]: 'status-checking',
+  [StatusViewState.PROCESSING]: 'status-processing',
 };
 
 /**
@@ -51,8 +68,13 @@ export function renderStatus(button, torch, flame, state) {
  *
  * @param {HTMLElement} container Element that holds the feedback text.
  * @param {string} message Message to be rendered.
+ * @param {string} [state] Contextual state associated with the message.
  */
-export function renderInfo(container, message) {
+export function renderInfo(container, message, state = InfoViewState.DEFAULT) {
   container.textContent = message;
+  const resolvedState = KNOWN_INFO_STATES.has(state)
+    ? state
+    : InfoViewState.DEFAULT;
+  container.dataset.state = resolvedState;
 }
 

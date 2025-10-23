@@ -44,7 +44,7 @@ export function buildApiUrl(path = '') {
  * Default timeout applied to HTTP requests (in milliseconds).
  * @type {number}
  */
-export const REQUEST_TIMEOUT_MS = 10000;
+export const REQUEST_TIMEOUT_MS = 20000;
 
 /**
  * Minimum elapsed time between successive status checks enforced in the UI (ms).

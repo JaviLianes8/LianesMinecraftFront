@@ -1,17 +1,29 @@
 import { ServerLifecycleState } from '../services/serverService.js';
 
+/**
+ * Enumerates the visual states supported by the status button.
+ * @readonly
+ * @enum {string}
+ */
+export const StatusViewState = Object.freeze({
+  ...ServerLifecycleState,
+  CHECKING: 'CHECKING',
+});
+
 const STATUS_LABELS = {
-  [ServerLifecycleState.UNKNOWN]: 'UNKNOWN',
-  [ServerLifecycleState.ONLINE]: 'ONLINE',
-  [ServerLifecycleState.OFFLINE]: 'OFFLINE',
-  [ServerLifecycleState.ERROR]: 'ERROR',
+  [StatusViewState.UNKNOWN]: 'UNKNOWN',
+  [StatusViewState.ONLINE]: 'ONLINE',
+  [StatusViewState.OFFLINE]: 'OFFLINE',
+  [StatusViewState.ERROR]: 'ERROR',
+  [StatusViewState.CHECKING]: 'CHECKING...',
 };
 
 const STATUS_CLASSES = {
-  [ServerLifecycleState.UNKNOWN]: 'status-undefined',
-  [ServerLifecycleState.ONLINE]: 'status-online',
-  [ServerLifecycleState.OFFLINE]: 'status-offline',
-  [ServerLifecycleState.ERROR]: 'status-error',
+  [StatusViewState.UNKNOWN]: 'status-undefined',
+  [StatusViewState.ONLINE]: 'status-online',
+  [StatusViewState.OFFLINE]: 'status-offline',
+  [StatusViewState.ERROR]: 'status-error',
+  [StatusViewState.CHECKING]: 'status-checking',
 };
 
 /**
@@ -20,14 +32,14 @@ const STATUS_CLASSES = {
  * @param {HTMLButtonElement} button Element that displays the textual status.
  * @param {SVGElement} torch Torch graphic used as visual indicator.
  * @param {SVGGElement} flame Flame graphic nested in the torch SVG.
- * @param {string} state Current lifecycle state.
+ * @param {string} state Current status view state.
  */
 export function renderStatus(button, torch, flame, state) {
-  const label = STATUS_LABELS[state] ?? STATUS_LABELS[ServerLifecycleState.UNKNOWN];
+  const label = STATUS_LABELS[state] ?? STATUS_LABELS[StatusViewState.UNKNOWN];
   button.textContent = `STATUS: ${label}`;
 
   button.classList.remove(...Object.values(STATUS_CLASSES));
-  button.classList.add(STATUS_CLASSES[state] ?? STATUS_CLASSES[ServerLifecycleState.UNKNOWN]);
+  button.classList.add(STATUS_CLASSES[state] ?? STATUS_CLASSES[StatusViewState.UNKNOWN]);
 
   const isOnline = state === ServerLifecycleState.ONLINE;
   torch.classList.toggle('torch-on', isOnline);

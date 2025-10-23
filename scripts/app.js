@@ -1,4 +1,10 @@
-import { STATUS_MIN_INTERVAL_MS, buildApiUrl } from './config.js';
+import {
+  API_BASE_URL,
+  REMOTE_API_BASE_URL,
+  STATUS_MIN_INTERVAL_MS,
+  buildApiUrl,
+  isUsingSameOriginProxy,
+} from './config.js';
 import { HttpError, TimeoutError } from './httpClient.js';
 import {
   fetchServerStatus,
@@ -233,6 +239,10 @@ function describeError(error) {
   }
 
   if (error instanceof HttpError) {
+    const gatewayDescription = describeGatewayIssue(error);
+    if (gatewayDescription) {
+      return gatewayDescription;
+    }
     const description = describeHttpStatus(error.status);
     if (description) {
       return t('error.httpWithDescription', { status: error.status, description });
@@ -254,6 +264,25 @@ function describeHttpStatus(status) {
   const key = `http.${status}`;
   const translation = t(key);
   return translation === key ? '' : translation;
+}
+
+function describeGatewayIssue(error) {
+  if (!isUsingSameOriginProxy()) {
+    return '';
+  }
+
+  if (error.status !== 502 && error.status !== 504) {
+    return '';
+  }
+
+  try {
+    const remoteUrl = new URL(REMOTE_API_BASE_URL);
+    const destination = remoteUrl.origin || REMOTE_API_BASE_URL;
+    return t('error.gatewayProxy', { status: error.status, destination });
+  } catch (parseError) {
+    console.warn('Unable to describe gateway issue', { error, parseError, apiBase: API_BASE_URL });
+    return '';
+  }
 }
 
 function updateButtonTooltip(button, message) {

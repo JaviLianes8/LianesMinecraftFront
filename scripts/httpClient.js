@@ -8,12 +8,14 @@ export class HttpError extends Error {
    * @param {string} message Human readable error description.
    * @param {number} status HTTP status code received from the server.
    * @param {unknown} payload Body returned by the server, parsed when possible.
+   * @param {string} [url] Endpoint that produced the error when available.
    */
-  constructor(message, status, payload) {
+  constructor(message, status, payload, url = '') {
     super(message);
     this.name = 'HttpError';
     this.status = status;
     this.payload = payload;
+    this.url = url;
   }
 }
 
@@ -93,7 +95,12 @@ async function performFetchRequest({ path, method, body, headers, signal, timeou
     }
 
     if (!response.ok) {
-      throw new HttpError(`Request failed with status ${response.status}`, response.status, data);
+      throw new HttpError(
+        `Request failed with status ${response.status}`,
+        response.status,
+        data,
+        endpoint,
+      );
     }
 
     return { data, response };
@@ -130,9 +137,18 @@ function submitViaForm({ path, method, signal, timeout }) {
       return;
     }
 
+    let targetUrl;
+    try {
+      targetUrl = resolveApiUrl(path);
+    } catch (error) {
+      transport.close();
+      reject(error);
+      return;
+    }
+
     const form = document.createElement('form');
     form.method = method;
-    form.action = resolveApiUrl(path);
+    form.action = targetUrl;
     form.target = transport.name;
     form.style.display = 'none';
     document.body.appendChild(form);
@@ -175,7 +191,12 @@ function submitViaForm({ path, method, signal, timeout }) {
       resolve({ data: null, response: undefined });
     }, Math.min(timeout, 1500));
 
-    form.submit();
+    try {
+      form.submit();
+    } catch (error) {
+      cleanup();
+      reject(new HttpError('Popup window blocked while attempting the request.', 0, null, targetUrl));
+    }
   });
 }
 
@@ -213,6 +234,11 @@ function resolveApiUrl(path) {
   try {
     return buildApiUrl(path);
   } catch (error) {
-    throw new HttpError('Unable to resolve API endpoint URL.', 0, error instanceof Error ? error.message : error);
+    throw new HttpError(
+      'Unable to resolve API endpoint URL.',
+      0,
+      error instanceof Error ? error.message : error,
+      typeof path === 'string' ? path : '',
+    );
   }
 }

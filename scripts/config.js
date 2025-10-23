@@ -1,5 +1,5 @@
-const REMOTE_API_BASE_URL = 'http://naseevvee.duckdns.org:8000/api';
-const PROXY_API_BASE_PATH = '/api';
+export const REMOTE_API_BASE_URL = 'http://naseevvee.duckdns.org:8000/api';
+export const PROXY_API_BASE_PATH = '/api';
 
 /**
  * Base URL for the remote Minecraft control API. When the application is served
@@ -20,6 +20,15 @@ function resolveApiBaseUrl() {
     return PROXY_API_BASE_PATH;
   }
   return REMOTE_API_BASE_URL;
+}
+
+/**
+ * Determines whether the UI is routing requests through the same-origin proxy.
+ *
+ * @returns {boolean} ``true`` when the proxy path is being used.
+ */
+export function isUsingSameOriginProxy() {
+  return API_BASE_URL === PROXY_API_BASE_PATH;
 }
 
 /**

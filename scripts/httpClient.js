@@ -74,7 +74,7 @@ async function performFetchRequest({ path, method, body, headers, signal, timeou
   const timeoutId = setTimeout(() => controller.abort(), timeout);
 
   try {
-    const response = await fetch(`${API_BASE_URL}${path}`, {
+    const response = await fetch(resolveApiUrl(path), {
       method,
       body,
       headers,
@@ -123,31 +123,31 @@ function shouldFallbackToForm({ error, method, body, headers }) {
 
 function submitViaForm({ path, method, signal, timeout }) {
   return new Promise((resolve, reject) => {
-    const iframe = ensureSandboxIframe();
+    const transport = openTransportWindow();
+    if (!transport) {
+      reject(new HttpError('Popup window blocked while attempting the request.', 0, null));
+      return;
+    }
+
     const form = document.createElement('form');
     form.method = method;
-    form.action = `${API_BASE_URL}${path}`;
-    form.target = iframe.name;
+    form.action = resolveApiUrl(path);
+    form.target = transport.name;
     form.style.display = 'none';
     document.body.appendChild(form);
 
     let timeoutId;
-    let errorListener;
+    let successTimer;
     const cleanup = () => {
       clearTimeout(timeoutId);
+      clearTimeout(successTimer);
       form.remove();
-      iframe.removeEventListener('load', handleLoad);
-      if (errorListener) {
-        iframe.removeEventListener('error', errorListener);
+      if (!transport.closed) {
+        transport.close();
       }
       if (abortListener && signal) {
         signal.removeEventListener('abort', abortListener);
       }
-    };
-
-    const handleLoad = () => {
-      cleanup();
-      resolve({ data: null, response: undefined });
     };
 
     let abortListener;
@@ -169,25 +169,55 @@ function submitViaForm({ path, method, signal, timeout }) {
       reject(new TimeoutError());
     }, timeout);
 
-    iframe.addEventListener('load', handleLoad, { once: true });
-    errorListener = () => {
+    successTimer = setTimeout(() => {
       cleanup();
-      reject(new HttpError('Request failed when submitted via form fallback.', 0, null));
-    };
-    iframe.addEventListener('error', errorListener, { once: true });
+      resolve({ data: null, response: undefined });
+    }, Math.min(timeout, 1500));
+
     form.submit();
   });
 }
 
-let sandboxIframe;
-
-function ensureSandboxIframe() {
-  if (!sandboxIframe) {
-    sandboxIframe = document.createElement('iframe');
-    sandboxIframe.name = `httpClientSandbox_${Date.now()}`;
-    sandboxIframe.setAttribute('aria-hidden', 'true');
-    sandboxIframe.style.display = 'none';
-    document.body.appendChild(sandboxIframe);
+/**
+ * Opens a transient window used to dispatch cross-origin form submissions when Fetch is blocked.
+ *
+ * @returns {Window|null} Reference to the opened window or null when the browser prevents it.
+ */
+function openTransportWindow() {
+  if (typeof window === 'undefined' || typeof window.open !== 'function') {
+    return null;
   }
-  return sandboxIframe;
+  const windowName = `httpClientTransport_${Date.now()}`;
+  const features = 'width=120,height=80,menubar=no,toolbar=no,location=no,status=no,scrollbars=no';
+  const reference = window.open('about:blank', windowName, features);
+  if (reference) {
+    try {
+      reference.name = windowName;
+      reference.opener = null;
+      reference.blur();
+    } catch (error) {
+      // ignore inability to adjust popup configuration
+    }
+  }
+  return reference;
+}
+
+/**
+ * Resolves the fully qualified URL for a relative API path based on the configured base URL.
+ *
+ * @param {string} path Relative request path supplied by service callers.
+ * @returns {string} Absolute URL pointing to the remote API resource.
+ */
+function resolveApiUrl(path) {
+  try {
+    const normalisedBase = API_BASE_URL.endsWith('/') ? API_BASE_URL : `${API_BASE_URL}/`;
+    const baseContext = typeof window !== 'undefined' && window.location
+      ? window.location.href
+      : normalisedBase;
+    const baseUrl = new URL(normalisedBase, baseContext);
+    const sanitisedPath = typeof path === 'string' ? path.replace(/^\//, '') : '';
+    return new URL(sanitisedPath, baseUrl).toString();
+  } catch (error) {
+    throw new HttpError('Unable to resolve API endpoint URL.', 0, error instanceof Error ? error.message : error);
+  }
 }

@@ -1,6 +1,8 @@
-const FALLBACK_LOCALE = 'es';
+const DEFAULT_LOCALE = 'en';
+const FALLBACK_LOCALE = DEFAULT_LOCALE;
+const LOCALE_STORAGE_KEY = 'ui.locale';
 
-const SUPPORTED_LOCALES = new Set(['es', 'en']);
+const SUPPORTED_LOCALES = new Set(['en', 'es']);
 
 const MESSAGES = {
   es: {
@@ -99,13 +101,6 @@ const MESSAGES = {
   },
 };
 
-function detectBrowserLocale() {
-  if (typeof navigator === 'undefined' || typeof navigator.language !== 'string') {
-    return FALLBACK_LOCALE;
-  }
-  return navigator.language;
-}
-
 function normaliseLocale(locale) {
   if (!locale || typeof locale !== 'string') {
     return FALLBACK_LOCALE;
@@ -121,7 +116,68 @@ function normaliseLocale(locale) {
   return FALLBACK_LOCALE;
 }
 
-let activeLocale = normaliseLocale(detectBrowserLocale());
+let activeLocale = resolveInitialLocale();
+
+function resolveInitialLocale() {
+  const queryLocale = readLocaleFromQuery();
+  if (queryLocale) {
+    const normalisedQueryLocale = normaliseLocale(queryLocale);
+    persistLocalePreference(normalisedQueryLocale);
+    return normalisedQueryLocale;
+  }
+
+  const persisted = loadPersistedLocale();
+  if (persisted) {
+    return normaliseLocale(persisted);
+  }
+
+  return normaliseLocale(DEFAULT_LOCALE);
+}
+
+function readLocaleFromQuery() {
+  if (typeof window === 'undefined' || typeof window.location === 'undefined') {
+    return null;
+  }
+
+  const { search } = window.location;
+  if (typeof search !== 'string' || search.length === 0) {
+    return null;
+  }
+
+  try {
+    const params = new URLSearchParams(search);
+    const queryLocale = params.get('lang');
+    return queryLocale;
+  } catch (error) {
+    console.error('Unable to parse locale from query string', error);
+    return null;
+  }
+}
+
+function loadPersistedLocale() {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return null;
+  }
+
+  try {
+    return window.localStorage.getItem(LOCALE_STORAGE_KEY);
+  } catch (error) {
+    console.warn('Unable to read locale preference from storage', error);
+    return null;
+  }
+}
+
+function persistLocalePreference(locale) {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(LOCALE_STORAGE_KEY, locale);
+  } catch (error) {
+    console.warn('Unable to persist locale preference', error);
+  }
+}
 
 /**
  * Retrieves the locale that is currently active in the UI layer.
@@ -133,13 +189,15 @@ export function getActiveLocale() {
 }
 
 /**
- * Forces the UI layer to use the provided locale when rendering text.
+ * Forces the UI layer to use the provided locale when rendering text. The
+ * preference is persisted so that subsequent visits reuse the same locale.
  *
  * @param {string} locale Desired locale identifier.
  * @returns {string} Normalised locale currently in use.
  */
 export function setLocale(locale) {
   activeLocale = normaliseLocale(locale);
+  persistLocalePreference(activeLocale);
   return activeLocale;
 }
 

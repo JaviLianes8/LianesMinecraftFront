@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=65", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "minecraft-server-backend"
+version = "0.1.0"
+description = "FastAPI backend orchestrating a modded Minecraft server"
+authors = [
+  { name = "Lianes" }
+]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.110,<0.115",
+  "uvicorn[standard]>=0.23",
+  "pydantic>=2.0,<3.0",
+]
+
+[project.optional-dependencies]
+docs = [
+  "sphinx>=7.0",
+  "sphinx-autodoc-typehints>=1.24",
+  "furo>=2023.7.26",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]

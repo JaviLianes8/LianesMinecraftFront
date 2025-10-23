@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+.venv/
+.venv
+.env.local
+.env.*.local
+mypy_cache/
+.pytest_cache/
+.cache/
+docs/_build/
+*.zip

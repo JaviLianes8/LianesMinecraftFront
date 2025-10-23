@@ -29,6 +29,8 @@ export class TimeoutError extends Error {
 
 /**
  * Executes an HTTP request using the native Fetch API applying a configurable timeout.
+ * Falls back to form submissions for CORS-restricted POST endpoints to preserve compatibility
+ * with servers that do not expose the necessary headers.
  *
  * @param {Object} options Options for the request.
  * @param {string} options.path Relative path appended to the API base URL.
@@ -37,7 +39,7 @@ export class TimeoutError extends Error {
  * @param {Record<string,string>} [options.headers={}] Additional headers.
  * @param {AbortSignal} [options.signal] External abort signal.
  * @param {number} [options.timeout=REQUEST_TIMEOUT_MS] Timeout in milliseconds.
- * @returns {Promise<{ data: unknown, response: Response }>} Parsed data and the original response.
+ * @returns {Promise<{ data: unknown, response: Response | undefined }>} Parsed data and the original response when available.
  */
 export async function request({
   path,
@@ -47,12 +49,24 @@ export async function request({
   signal,
   timeout = REQUEST_TIMEOUT_MS,
 }) {
+  try {
+    return await performFetchRequest({ path, method, body, headers, signal, timeout });
+  } catch (error) {
+    if (shouldFallbackToForm({ error, method, body, headers })) {
+      return submitViaForm({ path, method, signal, timeout });
+    }
+    throw error;
+  }
+}
+
+async function performFetchRequest({ path, method, body, headers, signal, timeout }) {
   const controller = new AbortController();
+  let abortListener;
   if (signal) {
     if (signal.aborted) {
       controller.abort();
     } else {
-      const abortListener = () => controller.abort();
+      abortListener = () => controller.abort();
       signal.addEventListener('abort', abortListener, { once: true });
     }
   }
@@ -89,5 +103,91 @@ export async function request({
     throw error;
   } finally {
     clearTimeout(timeoutId);
+    if (abortListener && signal) {
+      signal.removeEventListener('abort', abortListener);
+    }
   }
+}
+
+function shouldFallbackToForm({ error, method, body, headers }) {
+  if (!(error instanceof TypeError)) {
+    return false;
+  }
+
+  if (method !== 'POST' || body !== null) {
+    return false;
+  }
+
+  return Object.keys(headers || {}).length === 0;
+}
+
+function submitViaForm({ path, method, signal, timeout }) {
+  return new Promise((resolve, reject) => {
+    const iframe = ensureSandboxIframe();
+    const form = document.createElement('form');
+    form.method = method;
+    form.action = `${API_BASE_URL}${path}`;
+    form.target = iframe.name;
+    form.style.display = 'none';
+    document.body.appendChild(form);
+
+    let timeoutId;
+    let errorListener;
+    const cleanup = () => {
+      clearTimeout(timeoutId);
+      form.remove();
+      iframe.removeEventListener('load', handleLoad);
+      if (errorListener) {
+        iframe.removeEventListener('error', errorListener);
+      }
+      if (abortListener && signal) {
+        signal.removeEventListener('abort', abortListener);
+      }
+    };
+
+    const handleLoad = () => {
+      cleanup();
+      resolve({ data: null, response: undefined });
+    };
+
+    let abortListener;
+    if (signal) {
+      if (signal.aborted) {
+        cleanup();
+        reject(new TimeoutError());
+        return;
+      }
+      abortListener = () => {
+        cleanup();
+        reject(new TimeoutError());
+      };
+      signal.addEventListener('abort', abortListener, { once: true });
+    }
+
+    timeoutId = setTimeout(() => {
+      cleanup();
+      reject(new TimeoutError());
+    }, timeout);
+
+    iframe.addEventListener('load', handleLoad, { once: true });
+    errorListener = () => {
+      cleanup();
+      reject(new HttpError('Request failed when submitted via form fallback.', 0, null));
+    };
+    iframe.addEventListener('error', errorListener, { once: true });
+    form.submit();
+  });
+}
+
+let sandboxIframe;
+
+function ensureSandboxIframe() {
+  if (!sandboxIframe) {
+    sandboxIframe = document.createElement('iframe');
+    sandboxIframe.name = `httpClientSandbox_${Date.now()}`;
+    sandboxIframe.setAttribute('aria-hidden', 'true');
+    sandboxIframe.style.display = 'none';
+    document.body.appendChild(sandboxIframe);
+  }
+  return sandboxIframe;
 }

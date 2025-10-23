@@ -6,7 +6,7 @@ import {
   stopServer,
   ServerLifecycleState,
 } from './services/serverService.js';
-import { renderInfo, renderStatus } from './ui/statusPresenter.js';
+import { renderInfo, renderStatus, StatusViewState } from './ui/statusPresenter.js';
 
 const statusButton = document.querySelector('[data-role="status-button"]');
 const startButton = document.querySelector('[data-role="start-button"]');
@@ -58,7 +58,7 @@ async function handleStatusRequest() {
     return;
   }
 
-  setBusy(true);
+  setBusy(true, StatusViewState.CHECKING);
   renderInfo(infoPanel, 'Consultando estado del servidor...');
 
   try {
@@ -130,10 +130,10 @@ async function executeControlAction(action, pendingMessage, successMessage) {
   }
 }
 
-function setBusy(value) {
+function setBusy(value, viewState = currentState) {
   busy = value;
   updateControlAvailability();
-  renderStatus(statusButton, torchSvg, flame, currentState);
+  renderStatus(statusButton, torchSvg, flame, viewState);
 }
 
 function describeError(error) {

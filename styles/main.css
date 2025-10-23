@@ -83,6 +83,37 @@ header {
   border-color: #f26d6d;
 }
 
+.status-checking {
+  color: #102742;
+  background: linear-gradient(135deg, #a5d8ff 0%, #74b9ff 100%);
+  border-color: #5a9dd8;
+  position: relative;
+  overflow: hidden;
+}
+
+.status-checking::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    120deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.35) 45%,
+    rgba(255, 255, 255, 0) 90%
+  );
+  transform: translateX(-100%);
+  animation: status-shimmer 1.2s infinite;
+}
+
+@keyframes status-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
 main {
   display: grid;
   place-items: center;

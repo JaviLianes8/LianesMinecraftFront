@@ -145,7 +145,7 @@ main {
   position: relative;
 }
 
-.control-card > *:not(.player-mascot) {
+.control-card > *:not(.players-stage) {
   position: relative;
   z-index: 1;
 }
@@ -229,7 +229,7 @@ main {
   padding: 14px;
 }
 
-.player-mascot {
+.players-stage {
   position: absolute;
   inset: 0;
   width: 100%;

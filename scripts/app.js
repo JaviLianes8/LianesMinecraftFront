@@ -11,7 +11,7 @@ import {
 } from './services/serverService.js';
 import { getActiveLocale, translate as t } from './ui/i18n.js';
 import { InfoViewState, renderInfo, renderStatus, StatusViewState } from './ui/statusPresenter.js';
-import { createPlayerMascot } from './ui/playerMascot.js';
+import { createPlayersStage } from './ui/playersStage.js';
 
 const statusButton = document.querySelector('[data-role="status-button"]');
 const startButton = document.querySelector('[data-role="start-button"]');
@@ -32,8 +32,7 @@ let fallbackPollingId = null;
 let playersStreamSubscription = null;
 let playersSnapshotPromise = null;
 let playersFallbackPollingId = null;
-let playerMascot = null;
-let currentMascotName = null;
+let playersStage = null;
 
 const STATUS_FALLBACK_INTERVAL_MS = 30000;
 
@@ -45,7 +44,7 @@ function initialise() {
   applyLocaleToStaticContent();
   cacheDefaultButtonLabels();
   renderStatus(statusButton, torchSvg, flame, currentState);
-  initialisePlayerMascot();
+  initialisePlayersStage();
   prepareStatusIndicator();
   renderInfo(infoPanel, t('info.stream.connecting'), InfoViewState.PENDING);
   updateControlAvailability();
@@ -95,7 +94,6 @@ function applyLocaleToStaticContent() {
     neoforgeLink.textContent = t('ui.downloads.neoforge');
     updateDownloadLinkHref(neoforgeLink, 'neoforge/download');
   }
-
 }
 
 function cacheDefaultButtonLabels() {
@@ -494,58 +492,33 @@ function handlePlayersStreamError() {
 function cleanupAllStreams() {
   cleanupStatusStream();
   cleanupPlayersStream();
-  destroyPlayerMascot();
+  destroyPlayersStage();
 }
 
-function handlePlayersUpdate({ players }) {
-  updatePlayerMascot(players);
+function handlePlayersUpdate(snapshot) {
+  const players = snapshot && Array.isArray(snapshot.players) ? snapshot.players : [];
+  updatePlayersStage(players);
 }
 
-function initialisePlayerMascot() {
-  if (playerMascot || !controlCard) {
+function initialisePlayersStage() {
+  if (playersStage || !controlCard) {
     return;
   }
 
-  playerMascot = createPlayerMascot({ container: controlCard });
-  if (currentMascotName) {
-    playerMascot.updateName(currentMascotName);
-  }
+  playersStage = createPlayersStage({ container: controlCard });
 }
 
-function updatePlayerMascot(players) {
-  const resolvedName = resolvePreferredPlayerName(players);
-  if (resolvedName === currentMascotName) {
+function updatePlayersStage(players) {
+  if (!playersStage) {
     return;
   }
 
-  currentMascotName = resolvedName;
-  if (playerMascot && typeof playerMascot.updateName === 'function') {
-    playerMascot.updateName(currentMascotName);
-  }
+  playersStage.updatePlayers(players);
 }
 
-function resolvePreferredPlayerName(players) {
-  if (!Array.isArray(players)) {
-    return null;
+function destroyPlayersStage() {
+  if (playersStage && typeof playersStage.destroy === 'function') {
+    playersStage.destroy();
   }
-
-  for (const player of players) {
-    if (!player || typeof player.name !== 'string') {
-      continue;
-    }
-
-    const trimmed = player.name.trim();
-    if (trimmed.length > 0) {
-      return trimmed;
-    }
-  }
-
-  return null;
-}
-
-function destroyPlayerMascot() {
-  if (playerMascot && typeof playerMascot.destroy === 'function') {
-    playerMascot.destroy();
-  }
-  playerMascot = null;
+  playersStage = null;
 }

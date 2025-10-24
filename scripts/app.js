@@ -11,6 +11,7 @@ import {
 } from './services/serverService.js';
 import { getActiveLocale, translate as t } from './ui/i18n.js';
 import { InfoViewState, renderInfo, renderStatus, StatusViewState } from './ui/statusPresenter.js';
+import { createPlayersBackdrop } from './ui/playersBackdrop.js';
 
 const statusButton = document.querySelector('[data-role="status-button"]');
 const startButton = document.querySelector('[data-role="start-button"]');
@@ -18,6 +19,7 @@ const stopButton = document.querySelector('[data-role="stop-button"]');
 const infoPanel = document.querySelector('[data-role="info-panel"]');
 const torchSvg = document.querySelector('[data-role="torch"]');
 const flame = document.querySelector('[data-role="flame"]');
+const torchContainer = document.querySelector('.torch-container');
 const playersTitle = document.querySelector('[data-role="players-title"]');
 const playersCountIndicator = document.querySelector('[data-role="players-count"]');
 const playersList = document.querySelector('[data-role="players-list"]');
@@ -33,6 +35,7 @@ let fallbackPollingId = null;
 let playersStreamSubscription = null;
 let playersSnapshotPromise = null;
 let playersFallbackPollingId = null;
+let playersBackdrop = null;
 
 const STATUS_FALLBACK_INTERVAL_MS = 30000;
 
@@ -44,6 +47,7 @@ function initialise() {
   applyLocaleToStaticContent();
   cacheDefaultButtonLabels();
   renderStatus(statusButton, torchSvg, flame, currentState);
+  initialisePlayersBackdrop();
   prepareStatusIndicator();
   renderInfo(infoPanel, t('info.stream.connecting'), InfoViewState.PENDING);
   updateControlAvailability();
@@ -497,6 +501,7 @@ function handlePlayersUpdate({ players, count }) {
   const safeCount = typeof count === 'number' && Number.isFinite(count) ? Math.max(0, Math.trunc(count)) : 0;
   updatePlayersCount(safeCount);
   renderPlayersList(players);
+  updatePlayersBackdrop(players);
 }
 
 function updatePlayersCount(count) {
@@ -518,6 +523,7 @@ function renderPlayersPlaceholder() {
   emptyItem.className = 'players__empty';
   emptyItem.textContent = t('ui.players.empty');
   playersList.appendChild(emptyItem);
+  updatePlayersBackdrop([]);
 }
 
 function renderPlayersList(players) {
@@ -569,4 +575,28 @@ function renderPlayersList(players) {
 function cleanupAllStreams() {
   cleanupStatusStream();
   cleanupPlayersStream();
+  destroyPlayersBackdrop();
+}
+
+function initialisePlayersBackdrop() {
+  if (playersBackdrop || !torchContainer) {
+    return;
+  }
+
+  playersBackdrop = createPlayersBackdrop({ container: torchContainer });
+}
+
+function updatePlayersBackdrop(players) {
+  if (!playersBackdrop || typeof playersBackdrop.update !== 'function') {
+    return;
+  }
+
+  playersBackdrop.update(players);
+}
+
+function destroyPlayersBackdrop() {
+  if (playersBackdrop && typeof playersBackdrop.destroy === 'function') {
+    playersBackdrop.destroy();
+  }
+  playersBackdrop = null;
 }

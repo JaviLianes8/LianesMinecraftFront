@@ -9,6 +9,11 @@ const MIN_DIRECTION_INTERVAL = 1.6;
 const MAX_DIRECTION_INTERVAL = 4.2;
 const BOUNDS_PADDING = 28;
 
+const PLAYER_SKINS = new Map([
+  ['lianes8', drawLuffySkin],
+  ['pozofer11', drawPandaSkin],
+]);
+
 /**
  * Creates and manages a canvas stage that renders one mascot per connected player.
  *
@@ -209,7 +214,7 @@ function drawActor(ctx, actor) {
   const y = actor.y + Math.sin(actor.wave) * WAVE_AMPLITUDE;
 
   drawShadow(ctx, x, y, scale);
-  drawBody(ctx, x, y, scale);
+  drawBody(ctx, x, y, scale, actor.name);
   drawLabel(ctx, x, y, scale, actor.name);
 }
 
@@ -229,31 +234,9 @@ function drawShadow(ctx, x, y, scale) {
   ctx.restore();
 }
 
-function drawBody(ctx, x, y, scale) {
-  const px = (gx, gy, w, h, color) => {
-    ctx.fillStyle = color;
-    ctx.fillRect(x + gx * scale, y + gy * scale, w * scale, h * scale);
-  };
-
-  const primary = '#2f855a';
-  const secondary = '#276749';
-  const skin = '#f5cfa2';
-  const shoes = '#1f2933';
-  const hair = '#3f2a14';
-
-  px(3, 12, 3, 4, secondary);
-  px(6, 12, 3, 4, secondary);
-  px(3, 15, 3, 1, shoes);
-  px(6, 15, 3, 1, shoes);
-  px(2, 7, 8, 5, primary);
-  px(1, 7, 1, 5, secondary);
-  px(10, 7, 1, 5, secondary);
-  px(3, 2, 6, 5, skin);
-  px(3, 2, 6, 2, hair);
-  px(3, 4, 1, 1, hair);
-  px(8, 4, 1, 1, hair);
-  px(4, 4, 1, 1, '#111827');
-  px(7, 4, 1, 1, '#111827');
+function drawBody(ctx, x, y, scale, name) {
+  const renderer = resolveSkinRenderer(name);
+  renderer(ctx, x, y, scale);
 }
 
 function drawLabel(ctx, x, y, scale, name) {
@@ -275,6 +258,107 @@ function clampActorToBounds(actor, bounds) {
   const movementBounds = resolveMovementBounds(bounds, actor.scale);
   actor.x = clamp(actor.x, movementBounds.minX, movementBounds.maxX);
   actor.y = clamp(actor.y, movementBounds.minY, movementBounds.maxY);
+}
+
+function resolveSkinRenderer(name) {
+  if (typeof name !== 'string') {
+    return drawDefaultSkin;
+  }
+
+  const key = name.trim().toLowerCase();
+  if (!key) {
+    return drawDefaultSkin;
+  }
+
+  return PLAYER_SKINS.get(key) ?? drawDefaultSkin;
+}
+
+function drawDefaultSkin(ctx, x, y, scale) {
+  const paint = createPixelPainter(ctx, x, y, scale);
+
+  const primary = '#2f855a';
+  const secondary = '#276749';
+  const skin = '#f5cfa2';
+  const shoes = '#1f2933';
+  const hair = '#3f2a14';
+
+  paint(3, 12, 3, 4, secondary);
+  paint(6, 12, 3, 4, secondary);
+  paint(3, 15, 3, 1, shoes);
+  paint(6, 15, 3, 1, shoes);
+  paint(2, 7, 8, 5, primary);
+  paint(1, 7, 1, 5, secondary);
+  paint(10, 7, 1, 5, secondary);
+  paint(3, 2, 6, 5, skin);
+  paint(3, 2, 6, 2, hair);
+  paint(3, 4, 1, 1, hair);
+  paint(8, 4, 1, 1, hair);
+  paint(4, 4, 1, 1, '#111827');
+  paint(7, 4, 1, 1, '#111827');
+}
+
+function drawLuffySkin(ctx, x, y, scale) {
+  const paint = createPixelPainter(ctx, x, y, scale);
+
+  const hatStraw = '#f9d976';
+  const hatBand = '#e11d48';
+  const skin = '#f2c09f';
+  const shorts = '#2563eb';
+  const vest = '#f97316';
+  const sandals = '#7c2d12';
+  const hair = '#111827';
+
+  paint(2, 0, 8, 2, hatStraw);
+  paint(2, 2, 8, 1, hatBand);
+  paint(3, 3, 6, 1, hatStraw);
+  paint(3, 4, 6, 4, skin);
+  paint(3, 4, 6, 1, hair);
+  paint(3, 6, 1, 1, hair);
+  paint(8, 6, 1, 1, hair);
+  paint(4, 6, 1, 1, '#111827');
+  paint(7, 6, 1, 1, '#111827');
+  paint(2, 8, 8, 4, vest);
+  paint(2, 10, 1, 2, skin);
+  paint(9, 10, 1, 2, skin);
+  paint(3, 12, 3, 4, shorts);
+  paint(6, 12, 3, 4, shorts);
+  paint(3, 15, 3, 1, sandals);
+  paint(6, 15, 3, 1, sandals);
+}
+
+function drawPandaSkin(ctx, x, y, scale) {
+  const paint = createPixelPainter(ctx, x, y, scale);
+
+  const furWhite = '#f9fafb';
+  const furBlack = '#111827';
+  const bambooGreen = '#16a34a';
+
+  paint(3, 1, 2, 2, furBlack);
+  paint(7, 1, 2, 2, furBlack);
+  paint(3, 2, 6, 5, furWhite);
+  paint(2, 3, 1, 2, furBlack);
+  paint(9, 3, 1, 2, furBlack);
+  paint(3, 4, 1, 1, furBlack);
+  paint(8, 4, 1, 1, furBlack);
+  paint(4, 4, 1, 1, furBlack);
+  paint(7, 4, 1, 1, furBlack);
+  paint(5, 4, 2, 1, furWhite);
+  paint(2, 7, 8, 5, furWhite);
+  paint(2, 9, 2, 3, furBlack);
+  paint(8, 9, 2, 3, furBlack);
+  paint(3, 12, 3, 4, furBlack);
+  paint(6, 12, 3, 4, furBlack);
+  paint(3, 15, 3, 1, furBlack);
+  paint(6, 15, 3, 1, furBlack);
+  paint(9, 8, 1, 4, bambooGreen);
+  paint(10, 8, 1, 4, bambooGreen);
+}
+
+function createPixelPainter(ctx, x, y, scale) {
+  return (gx, gy, w, h, color) => {
+    ctx.fillStyle = color;
+    ctx.fillRect(x + gx * scale, y + gy * scale, w * scale, h * scale);
+  };
 }
 
 function resolveMovementBounds(size, scale) {

@@ -2,18 +2,22 @@ import { buildApiUrl } from './config.js';
 import { HttpError, TimeoutError } from './httpClient.js';
 import {
   fetchServerStatus,
+  fetchPlayersSnapshot,
   startServer,
   stopServer,
   ServerLifecycleState,
   subscribeToServerStatusStream,
+  connectToPlayersStream,
 } from './services/serverService.js';
 import { getActiveLocale, translate as t } from './ui/i18n.js';
 import { InfoViewState, renderInfo, renderStatus, StatusViewState } from './ui/statusPresenter.js';
+import { createPlayerMascot } from './ui/playerMascot.js';
 
 const statusButton = document.querySelector('[data-role="status-button"]');
 const startButton = document.querySelector('[data-role="start-button"]');
 const stopButton = document.querySelector('[data-role="stop-button"]');
 const infoPanel = document.querySelector('[data-role="info-panel"]');
+const controlCard = document.querySelector('.control-card');
 const torchSvg = document.querySelector('[data-role="torch"]');
 const flame = document.querySelector('[data-role="flame"]');
 
@@ -25,6 +29,11 @@ let hasReceivedStatusUpdate = false;
 let streamHasError = false;
 let statusSnapshotPromise = null;
 let fallbackPollingId = null;
+let playersStreamSubscription = null;
+let playersSnapshotPromise = null;
+let playersFallbackPollingId = null;
+let playerMascot = null;
+let currentMascotName = null;
 
 const STATUS_FALLBACK_INTERVAL_MS = 30000;
 
@@ -36,6 +45,7 @@ function initialise() {
   applyLocaleToStaticContent();
   cacheDefaultButtonLabels();
   renderStatus(statusButton, torchSvg, flame, currentState);
+  initialisePlayerMascot();
   prepareStatusIndicator();
   renderInfo(infoPanel, t('info.stream.connecting'), InfoViewState.PENDING);
   updateControlAvailability();
@@ -44,10 +54,12 @@ function initialise() {
   stopButton.addEventListener('click', handleStopRequest);
 
   connectToStatusStream();
+  connectToPlayersStreamChannel();
   requestStatusSnapshot();
+  requestPlayersSnapshot();
 
   if (typeof window !== 'undefined') {
-    window.addEventListener('beforeunload', cleanupStatusStream, { once: true });
+    window.addEventListener('beforeunload', cleanupAllStreams, { once: true });
   }
 }
 
@@ -83,6 +95,7 @@ function applyLocaleToStaticContent() {
     neoforgeLink.textContent = t('ui.downloads.neoforge');
     updateDownloadLinkHref(neoforgeLink, 'neoforge/download');
   }
+
 }
 
 function cacheDefaultButtonLabels() {
@@ -232,6 +245,25 @@ function connectToStatusStream() {
   stopFallbackPolling();
 }
 
+function connectToPlayersStreamChannel() {
+  cleanupPlayersStream();
+
+  const subscription = connectToPlayersStream({
+    onOpen: handlePlayersStreamOpen,
+    onPlayers: handlePlayersUpdate,
+    onError: handlePlayersStreamError,
+  });
+
+  if (!subscription.source) {
+    startPlayersFallbackPolling();
+    requestPlayersSnapshot();
+    return;
+  }
+
+  playersStreamSubscription = subscription;
+  stopPlayersFallbackPolling();
+}
+
 function handleStreamOpen() {
   streamHasError = false;
   stopFallbackPolling();
@@ -259,6 +291,10 @@ function handleStreamError() {
   requestStatusSnapshot().catch((error) => {
     console.error('Unable to refresh status snapshot after stream error', error);
   });
+
+  requestPlayersSnapshot().catch((error) => {
+    console.error('Unable to refresh players snapshot after stream error', error);
+  });
 }
 
 function cleanupStatusStream() {
@@ -269,11 +305,21 @@ function cleanupStatusStream() {
   stopFallbackPolling();
 }
 
+function cleanupPlayersStream() {
+  if (playersStreamSubscription && typeof playersStreamSubscription.close === 'function') {
+    playersStreamSubscription.close();
+  }
+  playersStreamSubscription = null;
+  stopPlayersFallbackPolling();
+}
+
 function startFallbackPolling() {
   stopFallbackPolling();
   fallbackPollingId = setInterval(() => {
     requestStatusSnapshot();
   }, STATUS_FALLBACK_INTERVAL_MS);
+
+  startPlayersFallbackPolling();
 }
 
 function stopFallbackPolling() {
@@ -281,6 +327,25 @@ function stopFallbackPolling() {
     clearInterval(fallbackPollingId);
     fallbackPollingId = null;
   }
+}
+
+function startPlayersFallbackPolling() {
+  if (playersFallbackPollingId) {
+    return;
+  }
+
+  playersFallbackPollingId = setInterval(() => {
+    requestPlayersSnapshot();
+  }, STATUS_FALLBACK_INTERVAL_MS);
+}
+
+function stopPlayersFallbackPolling() {
+  if (!playersFallbackPollingId) {
+    return;
+  }
+
+  clearInterval(playersFallbackPollingId);
+  playersFallbackPollingId = null;
 }
 
 function applyServerLifecycleState(state) {
@@ -328,6 +393,25 @@ function requestStatusSnapshot() {
   })();
 
   return statusSnapshotPromise;
+}
+
+function requestPlayersSnapshot() {
+  if (playersSnapshotPromise) {
+    return playersSnapshotPromise;
+  }
+
+  playersSnapshotPromise = (async () => {
+    try {
+      const snapshot = await fetchPlayersSnapshot();
+      handlePlayersUpdate(snapshot);
+    } catch (error) {
+      console.error('Unable to fetch players snapshot', error);
+    } finally {
+      playersSnapshotPromise = null;
+    }
+  })();
+
+  return playersSnapshotPromise;
 }
 
 function confirmStopAction() {
@@ -394,4 +478,74 @@ function setControlButtonBusy(button, customLabel) {
       button.textContent = defaultLabel;
     }
   };
+}
+
+function handlePlayersStreamOpen() {
+  stopPlayersFallbackPolling();
+}
+
+function handlePlayersStreamError() {
+  startPlayersFallbackPolling();
+  requestPlayersSnapshot().catch((error) => {
+    console.error('Unable to refresh players snapshot after stream error', error);
+  });
+}
+
+function cleanupAllStreams() {
+  cleanupStatusStream();
+  cleanupPlayersStream();
+  destroyPlayerMascot();
+}
+
+function handlePlayersUpdate({ players }) {
+  updatePlayerMascot(players);
+}
+
+function initialisePlayerMascot() {
+  if (playerMascot || !controlCard) {
+    return;
+  }
+
+  playerMascot = createPlayerMascot({ container: controlCard });
+  if (currentMascotName) {
+    playerMascot.updateName(currentMascotName);
+  }
+}
+
+function updatePlayerMascot(players) {
+  const resolvedName = resolvePreferredPlayerName(players);
+  if (resolvedName === currentMascotName) {
+    return;
+  }
+
+  currentMascotName = resolvedName;
+  if (playerMascot && typeof playerMascot.updateName === 'function') {
+    playerMascot.updateName(currentMascotName);
+  }
+}
+
+function resolvePreferredPlayerName(players) {
+  if (!Array.isArray(players)) {
+    return null;
+  }
+
+  for (const player of players) {
+    if (!player || typeof player.name !== 'string') {
+      continue;
+    }
+
+    const trimmed = player.name.trim();
+    if (trimmed.length > 0) {
+      return trimmed;
+    }
+  }
+
+  return null;
+}
+
+function destroyPlayerMascot() {
+  if (playerMascot && typeof playerMascot.destroy === 'function') {
+    playerMascot.destroy();
+  }
+  playerMascot = null;
 }

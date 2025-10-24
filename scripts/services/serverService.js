@@ -105,6 +105,94 @@ function normaliseStatusString(value) {
 }
 
 const STATUS_STREAM_ENDPOINT = '/server/status/stream';
+const PLAYERS_STREAM_ENDPOINT = '/server/players/stream';
+const PLAYERS_SNAPSHOT_ENDPOINT = '/server/players';
+
+/**
+ * Creates a resilient {@link EventSource} subscription with consistent lifecycle handling.
+ *
+ * @param {string} endpoint Relative API endpoint to connect to.
+ * @param {Object} [handlers] Optional callbacks that react to stream activity.
+ * @param {(event: MessageEvent<string>) => void} [handlers.onMessage] Invoked with each non-empty message.
+ * @param {() => void} [handlers.onOpen] Invoked once the stream is confirmed ready.
+ * @param {(event: Event | Error) => void} [handlers.onError] Invoked when the browser reports a stream error.
+ * @returns {{ close: () => void, source: EventSource | null }} Handle that terminates the subscription.
+ */
+function createEventSourceSubscription(endpoint, { onMessage, onOpen, onError } = {}) {
+  if (typeof window === 'undefined' || typeof window.EventSource === 'undefined') {
+    return {
+      close: () => {},
+      source: null,
+    };
+  }
+
+  const url = buildApiUrl(endpoint);
+  let source;
+  try {
+    source = new EventSource(url);
+  } catch (error) {
+    if (typeof onError === 'function') {
+      onError(error);
+    }
+    return {
+      close: () => {},
+      source: null,
+    };
+  }
+
+  let hasAnnouncedOpen = false;
+  const announceOpen = () => {
+    if (hasAnnouncedOpen) {
+      return;
+    }
+    hasAnnouncedOpen = true;
+    if (typeof onOpen === 'function') {
+      onOpen();
+    }
+  };
+
+  const handleMessage = (event) => {
+    if (!event || typeof event.data !== 'string') {
+      return;
+    }
+
+    if (event.data.length === 0 && (!event.type || event.type === 'message')) {
+      announceOpen();
+      return;
+    }
+
+    announceOpen();
+
+    if (typeof onMessage === 'function') {
+      onMessage(event);
+    }
+  };
+
+  const handleOpen = () => {
+    announceOpen();
+  };
+
+  const handleError = (event) => {
+    hasAnnouncedOpen = false;
+    if (typeof onError === 'function') {
+      onError(event);
+    }
+  };
+
+  source.addEventListener('message', handleMessage);
+  source.addEventListener('open', handleOpen);
+  source.addEventListener('error', handleError);
+
+  const close = () => {
+    hasAnnouncedOpen = false;
+    source.removeEventListener('message', handleMessage);
+    source.removeEventListener('open', handleOpen);
+    source.removeEventListener('error', handleError);
+    source.close();
+  };
+
+  return { close, source };
+}
 
 /**
  * Subscribes to the server status stream exposed by the backend using SSE.
@@ -116,67 +204,119 @@ const STATUS_STREAM_ENDPOINT = '/server/status/stream';
  * @returns {{ close: () => void, source: EventSource | null }} Handle used to terminate the subscription.
  */
 export function subscribeToServerStatusStream({ onStatus, onOpen, onError } = {}) {
-  if (typeof window === 'undefined' || typeof window.EventSource === 'undefined') {
-    return {
-      close: () => {},
-      source: null,
-    };
+  return createEventSourceSubscription(STATUS_STREAM_ENDPOINT, {
+    onOpen,
+    onError,
+    onMessage: (event) => {
+      if (!event || typeof event.data !== 'string' || event.data.length === 0) {
+        return;
+      }
+
+      let payload;
+      try {
+        payload = JSON.parse(event.data);
+      } catch (error) {
+        payload = event.data;
+      }
+
+      const state = normaliseServerStatusPayload(payload);
+      if (typeof onStatus === 'function') {
+        onStatus({ state, raw: payload });
+      }
+    },
+  });
+}
+
+/**
+ * Subscribes to the live players stream exposed by the backend using SSE.
+ *
+ * @param {Object} [handlers] Collection of callbacks invoked by stream events.
+ * @param {(snapshot: { players: Array<{ name: string, connectedSince?: string }>, count: number }) => void} [handlers.onPlayers]
+ * Updates the UI with the latest players snapshot.
+ * @param {() => void} [handlers.onOpen] Invoked when the stream connection is confirmed ready.
+ * @param {(event: Event | Error) => void} [handlers.onError] Invoked when the browser reports a stream error.
+ * @returns {{ close: () => void, source: EventSource | null }} Handle that terminates the subscription.
+ */
+export function connectToPlayersStream({ onPlayers, onOpen, onError } = {}) {
+  return createEventSourceSubscription(PLAYERS_STREAM_ENDPOINT, {
+    onOpen,
+    onError,
+    onMessage: (event) => {
+      if (!event || typeof event.data !== 'string' || event.data.length === 0) {
+        return;
+      }
+
+      try {
+        const rawPayload = JSON.parse(event.data);
+        const snapshot = normalisePlayersSnapshotPayload(rawPayload);
+        if (typeof onPlayers === 'function') {
+          onPlayers(snapshot);
+        }
+      } catch (error) {
+        console.warn('Unable to parse players stream payload', error);
+      }
+    },
+  });
+}
+
+/**
+ * Retrieves a one-off snapshot of the currently connected players.
+ *
+ * @returns {Promise<{ players: Array<{ name: string, connectedSince?: string }>, count: number }>} Normalised players snapshot.
+ */
+export async function fetchPlayersSnapshot() {
+  const { data } = await request({ path: PLAYERS_SNAPSHOT_ENDPOINT });
+  return normalisePlayersSnapshotPayload(data);
+}
+
+/**
+ * Normalises payloads that describe connected players.
+ *
+ * @param {unknown} payload Raw payload returned by the backend.
+ * @returns {{ players: Array<{ name: string, connectedSince?: string }>, count: number }} Sanitised snapshot.
+ */
+export function normalisePlayersSnapshotPayload(payload) {
+  if (!payload || typeof payload !== 'object') {
+    return { players: [], count: 0 };
   }
 
-  const endpoint = buildApiUrl(STATUS_STREAM_ENDPOINT);
-  let source;
-  try {
-    source = new EventSource(endpoint);
-  } catch (error) {
-    if (typeof onError === 'function') {
-      onError(error);
-    }
-    return {
-      close: () => {},
-      source: null,
-    };
-  }
+  const rawPlayers = Array.isArray(payload.players) ? payload.players : [];
+  const players = rawPlayers
+    .map((entry) => {
+      if (!entry) {
+        return null;
+      }
 
-  const handleMessage = (event) => {
-    if (!event || typeof event.data !== 'string' || event.data.length === 0) {
-      return;
-    }
+      if (typeof entry === 'string') {
+        return { name: entry.trim() };
+      }
 
-    let payload;
-    try {
-      payload = JSON.parse(event.data);
-    } catch (error) {
-      payload = event.data;
-    }
+      if (typeof entry === 'object') {
+        const name = 'name' in entry && typeof entry.name === 'string'
+          ? entry.name.trim()
+          : '';
+        if (!name) {
+          return null;
+        }
 
-    const state = normaliseServerStatusPayload(payload);
-    if (typeof onStatus === 'function') {
-      onStatus({ state, raw: payload });
-    }
-  };
+        const connectedSince = 'connected_since' in entry && typeof entry.connected_since === 'string'
+          ? entry.connected_since
+          : 'connectedSince' in entry && typeof entry.connectedSince === 'string'
+            ? entry.connectedSince
+            : undefined;
 
-  const handleOpen = () => {
-    if (typeof onOpen === 'function') {
-      onOpen();
-    }
-  };
+        return connectedSince
+          ? { name, connectedSince }
+          : { name };
+      }
 
-  const handleError = (event) => {
-    if (typeof onError === 'function') {
-      onError(event);
-    }
-  };
+      return null;
+    })
+    .filter((entry) => entry && entry.name.length > 0);
 
-  source.addEventListener('message', handleMessage);
-  source.addEventListener('open', handleOpen);
-  source.addEventListener('error', handleError);
+  const count = typeof payload.count === 'number' && Number.isFinite(payload.count)
+    ? Math.max(0, Math.trunc(payload.count))
+    : players.length;
 
-  const close = () => {
-    source.removeEventListener('message', handleMessage);
-    source.removeEventListener('open', handleOpen);
-    source.removeEventListener('error', handleError);
-    source.close();
-  };
-
-  return { close, source };
+  return { players, count };
 }

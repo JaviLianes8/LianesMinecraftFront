@@ -2,10 +2,12 @@ import { buildApiUrl } from './config.js';
 import { HttpError, TimeoutError } from './httpClient.js';
 import {
   fetchServerStatus,
+  fetchPlayersSnapshot,
   startServer,
   stopServer,
   ServerLifecycleState,
   subscribeToServerStatusStream,
+  connectToPlayersStream,
 } from './services/serverService.js';
 import { getActiveLocale, translate as t } from './ui/i18n.js';
 import { InfoViewState, renderInfo, renderStatus, StatusViewState } from './ui/statusPresenter.js';
@@ -16,6 +18,9 @@ const stopButton = document.querySelector('[data-role="stop-button"]');
 const infoPanel = document.querySelector('[data-role="info-panel"]');
 const torchSvg = document.querySelector('[data-role="torch"]');
 const flame = document.querySelector('[data-role="flame"]');
+const playersTitle = document.querySelector('[data-role="players-title"]');
+const playersCountIndicator = document.querySelector('[data-role="players-count"]');
+const playersList = document.querySelector('[data-role="players-list"]');
 
 let currentState = ServerLifecycleState.UNKNOWN;
 let statusEligible = false;
@@ -25,6 +30,9 @@ let hasReceivedStatusUpdate = false;
 let streamHasError = false;
 let statusSnapshotPromise = null;
 let fallbackPollingId = null;
+let playersStreamSubscription = null;
+let playersSnapshotPromise = null;
+let playersFallbackPollingId = null;
 
 const STATUS_FALLBACK_INTERVAL_MS = 30000;
 
@@ -39,15 +47,18 @@ function initialise() {
   prepareStatusIndicator();
   renderInfo(infoPanel, t('info.stream.connecting'), InfoViewState.PENDING);
   updateControlAvailability();
+  renderPlayersPlaceholder();
 
   startButton.addEventListener('click', handleStartRequest);
   stopButton.addEventListener('click', handleStopRequest);
 
   connectToStatusStream();
+  connectToPlayersStreamChannel();
   requestStatusSnapshot();
+  requestPlayersSnapshot();
 
   if (typeof window !== 'undefined') {
-    window.addEventListener('beforeunload', cleanupStatusStream, { once: true });
+    window.addEventListener('beforeunload', cleanupAllStreams, { once: true });
   }
 }
 
@@ -82,6 +93,10 @@ function applyLocaleToStaticContent() {
   if (neoforgeLink) {
     neoforgeLink.textContent = t('ui.downloads.neoforge');
     updateDownloadLinkHref(neoforgeLink, 'neoforge/download');
+  }
+
+  if (playersTitle) {
+    playersTitle.textContent = t('ui.players.label');
   }
 }
 
@@ -232,6 +247,25 @@ function connectToStatusStream() {
   stopFallbackPolling();
 }
 
+function connectToPlayersStreamChannel() {
+  cleanupPlayersStream();
+
+  const subscription = connectToPlayersStream({
+    onOpen: handlePlayersStreamOpen,
+    onPlayers: handlePlayersUpdate,
+    onError: handlePlayersStreamError,
+  });
+
+  if (!subscription.source) {
+    startPlayersFallbackPolling();
+    requestPlayersSnapshot();
+    return;
+  }
+
+  playersStreamSubscription = subscription;
+  stopPlayersFallbackPolling();
+}
+
 function handleStreamOpen() {
   streamHasError = false;
   stopFallbackPolling();
@@ -259,6 +293,10 @@ function handleStreamError() {
   requestStatusSnapshot().catch((error) => {
     console.error('Unable to refresh status snapshot after stream error', error);
   });
+
+  requestPlayersSnapshot().catch((error) => {
+    console.error('Unable to refresh players snapshot after stream error', error);
+  });
 }
 
 function cleanupStatusStream() {
@@ -269,11 +307,21 @@ function cleanupStatusStream() {
   stopFallbackPolling();
 }
 
+function cleanupPlayersStream() {
+  if (playersStreamSubscription && typeof playersStreamSubscription.close === 'function') {
+    playersStreamSubscription.close();
+  }
+  playersStreamSubscription = null;
+  stopPlayersFallbackPolling();
+}
+
 function startFallbackPolling() {
   stopFallbackPolling();
   fallbackPollingId = setInterval(() => {
     requestStatusSnapshot();
   }, STATUS_FALLBACK_INTERVAL_MS);
+
+  startPlayersFallbackPolling();
 }
 
 function stopFallbackPolling() {
@@ -281,6 +329,25 @@ function stopFallbackPolling() {
     clearInterval(fallbackPollingId);
     fallbackPollingId = null;
   }
+}
+
+function startPlayersFallbackPolling() {
+  if (playersFallbackPollingId) {
+    return;
+  }
+
+  playersFallbackPollingId = setInterval(() => {
+    requestPlayersSnapshot();
+  }, STATUS_FALLBACK_INTERVAL_MS);
+}
+
+function stopPlayersFallbackPolling() {
+  if (!playersFallbackPollingId) {
+    return;
+  }
+
+  clearInterval(playersFallbackPollingId);
+  playersFallbackPollingId = null;
 }
 
 function applyServerLifecycleState(state) {
@@ -328,6 +395,25 @@ function requestStatusSnapshot() {
   })();
 
   return statusSnapshotPromise;
+}
+
+function requestPlayersSnapshot() {
+  if (playersSnapshotPromise) {
+    return playersSnapshotPromise;
+  }
+
+  playersSnapshotPromise = (async () => {
+    try {
+      const snapshot = await fetchPlayersSnapshot();
+      handlePlayersUpdate(snapshot);
+    } catch (error) {
+      console.error('Unable to fetch players snapshot', error);
+    } finally {
+      playersSnapshotPromise = null;
+    }
+  })();
+
+  return playersSnapshotPromise;
 }
 
 function confirmStopAction() {
@@ -394,4 +480,93 @@ function setControlButtonBusy(button, customLabel) {
       button.textContent = defaultLabel;
     }
   };
+}
+
+function handlePlayersStreamOpen() {
+  stopPlayersFallbackPolling();
+}
+
+function handlePlayersStreamError() {
+  startPlayersFallbackPolling();
+  requestPlayersSnapshot().catch((error) => {
+    console.error('Unable to refresh players snapshot after stream error', error);
+  });
+}
+
+function handlePlayersUpdate({ players, count }) {
+  const safeCount = typeof count === 'number' && Number.isFinite(count) ? Math.max(0, Math.trunc(count)) : 0;
+  updatePlayersCount(safeCount);
+  renderPlayersList(players);
+}
+
+function updatePlayersCount(count) {
+  if (!playersCountIndicator) {
+    return;
+  }
+
+  playersCountIndicator.textContent = String(count);
+  playersCountIndicator.setAttribute('data-count', String(count));
+}
+
+function renderPlayersPlaceholder() {
+  if (!playersList) {
+    return;
+  }
+
+  playersList.innerHTML = '';
+  const emptyItem = document.createElement('li');
+  emptyItem.className = 'players__empty';
+  emptyItem.textContent = t('ui.players.empty');
+  playersList.appendChild(emptyItem);
+}
+
+function renderPlayersList(players) {
+  if (!playersList) {
+    return;
+  }
+
+  playersList.innerHTML = '';
+
+  if (!Array.isArray(players) || players.length === 0) {
+    renderPlayersPlaceholder();
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  for (const player of players) {
+    if (!player || typeof player.name !== 'string' || player.name.length === 0) {
+      continue;
+    }
+
+    const item = document.createElement('li');
+    item.className = 'players__item';
+
+    const nameElement = document.createElement('span');
+    nameElement.className = 'players__name';
+    nameElement.textContent = player.name;
+    item.appendChild(nameElement);
+
+    const connectedSince = player.connectedSince ?? player.connected_since;
+    if (connectedSince && typeof connectedSince === 'string') {
+      const sinceElement = document.createElement('time');
+      sinceElement.className = 'players__since';
+      sinceElement.dateTime = connectedSince;
+      sinceElement.textContent = t('ui.players.connectedSince', { value: connectedSince });
+      item.appendChild(sinceElement);
+    }
+
+    fragment.appendChild(item);
+  }
+
+  if (!fragment.childNodes.length) {
+    renderPlayersPlaceholder();
+    return;
+  }
+
+  playersList.appendChild(fragment);
+}
+
+function cleanupAllStreams() {
+  cleanupStatusStream();
+  cleanupPlayersStream();
 }

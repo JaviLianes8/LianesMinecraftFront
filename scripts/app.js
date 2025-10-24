@@ -11,8 +11,7 @@ import {
 } from './services/serverService.js';
 import { getActiveLocale, translate as t } from './ui/i18n.js';
 import { InfoViewState, renderInfo, renderStatus, StatusViewState } from './ui/statusPresenter.js';
-import { createPlayerMascot } from './ui/playerMascot.js';
-import { createPlayersPanel } from './ui/playersPresenter.js';
+import { createPlayersStage } from './ui/playersStage.js';
 
 const statusButton = document.querySelector('[data-role="status-button"]');
 const startButton = document.querySelector('[data-role="start-button"]');
@@ -21,11 +20,6 @@ const infoPanel = document.querySelector('[data-role="info-panel"]');
 const controlCard = document.querySelector('.control-card');
 const torchSvg = document.querySelector('[data-role="torch"]');
 const flame = document.querySelector('[data-role="flame"]');
-const playersPanelRoot = document.querySelector('[data-role="players-panel"]');
-const playersTitle = document.querySelector('[data-role="players-title"]');
-const playersCount = document.querySelector('[data-role="players-count"]');
-const playersEmpty = document.querySelector('[data-role="players-empty"]');
-const playersList = document.querySelector('[data-role="players-list"]');
 
 let currentState = ServerLifecycleState.UNKNOWN;
 let statusEligible = false;
@@ -38,9 +32,7 @@ let fallbackPollingId = null;
 let playersStreamSubscription = null;
 let playersSnapshotPromise = null;
 let playersFallbackPollingId = null;
-let playerMascot = null;
-let currentMascotName = null;
-let playersPanelView = null;
+let playersStage = null;
 
 const STATUS_FALLBACK_INTERVAL_MS = 30000;
 
@@ -49,11 +41,10 @@ const defaultButtonLabels = new Map();
 initialise();
 
 function initialise() {
-  initialisePlayersPanel();
   applyLocaleToStaticContent();
   cacheDefaultButtonLabels();
   renderStatus(statusButton, torchSvg, flame, currentState);
-  initialisePlayerMascot();
+  initialisePlayersStage();
   prepareStatusIndicator();
   renderInfo(infoPanel, t('info.stream.connecting'), InfoViewState.PENDING);
   updateControlAvailability();
@@ -103,8 +94,6 @@ function applyLocaleToStaticContent() {
     neoforgeLink.textContent = t('ui.downloads.neoforge');
     updateDownloadLinkHref(neoforgeLink, 'neoforge/download');
   }
-
-  applyLocaleToPlayersPanel();
 }
 
 function cacheDefaultButtonLabels() {
@@ -503,157 +492,33 @@ function handlePlayersStreamError() {
 function cleanupAllStreams() {
   cleanupStatusStream();
   cleanupPlayersStream();
-  destroyPlayerMascot();
+  destroyPlayersStage();
 }
 
 function handlePlayersUpdate(snapshot) {
   const players = snapshot && Array.isArray(snapshot.players) ? snapshot.players : [];
-  updatePlayerMascot(players);
-  if (playersPanelView) {
-    playersPanelView.renderSnapshot(snapshot);
-  }
+  updatePlayersStage(players);
 }
 
-function initialisePlayerMascot() {
-  if (playerMascot || !controlCard) {
+function initialisePlayersStage() {
+  if (playersStage || !controlCard) {
     return;
   }
 
-  playerMascot = createPlayerMascot({ container: controlCard });
-  if (currentMascotName) {
-    playerMascot.updateName(currentMascotName);
-  }
+  playersStage = createPlayersStage({ container: controlCard });
 }
 
-function updatePlayerMascot(players) {
-  const resolvedName = resolvePreferredPlayerName(players);
-  if (resolvedName === currentMascotName) {
+function updatePlayersStage(players) {
+  if (!playersStage) {
     return;
   }
 
-  currentMascotName = resolvedName;
-  if (playerMascot && typeof playerMascot.updateName === 'function') {
-    playerMascot.updateName(currentMascotName);
-  }
+  playersStage.updatePlayers(players);
 }
 
-function resolvePreferredPlayerName(players) {
-  if (!Array.isArray(players)) {
-    return null;
+function destroyPlayersStage() {
+  if (playersStage && typeof playersStage.destroy === 'function') {
+    playersStage.destroy();
   }
-
-  for (const player of players) {
-    if (!player || typeof player.name !== 'string') {
-      continue;
-    }
-
-    const trimmed = player.name.trim();
-    if (trimmed.length > 0) {
-      return trimmed;
-    }
-  }
-
-  return null;
-}
-
-function destroyPlayerMascot() {
-  if (playerMascot && typeof playerMascot.destroy === 'function') {
-    playerMascot.destroy();
-  }
-  playerMascot = null;
-}
-
-function initialisePlayersPanel() {
-  if (playersPanelView || !playersPanelRoot) {
-    return;
-  }
-
-  playersPanelView = createPlayersPanel({
-    root: playersPanelRoot,
-    titleElement: playersTitle,
-    countElement: playersCount,
-    emptyElement: playersEmpty,
-    listElement: playersList,
-  });
-}
-
-function applyLocaleToPlayersPanel() {
-  if (!playersPanelView) {
-    if (playersTitle) {
-      playersTitle.textContent = t('ui.players.title');
-    }
-    if (playersCount) {
-      playersCount.textContent = t('ui.players.loading');
-    }
-    if (playersEmpty) {
-      playersEmpty.textContent = t('ui.players.loading');
-    }
-    return;
-  }
-
-  playersPanelView.applyCopy({
-    title: t('ui.players.title'),
-    loading: t('ui.players.loading'),
-    empty: t('ui.players.empty'),
-    count: (count) => formatPlayersCountLabel(count),
-    connectedSince: (connectedSince) => formatConnectedSinceLabel(connectedSince),
-  });
-}
-
-function formatPlayersCountLabel(count) {
-  if (typeof count !== 'number' || Number.isNaN(count) || count < 0) {
-    return t('ui.players.count.zero');
-  }
-
-  if (count === 0) {
-    return t('ui.players.count.zero');
-  }
-
-  if (count === 1) {
-    return t('ui.players.count.one');
-  }
-
-  return t('ui.players.count.other', { count });
-}
-
-function formatConnectedSinceLabel(connectedSince) {
-  if (!connectedSince || typeof connectedSince !== 'string') {
-    return '';
-  }
-
-  const parsed = new Date(connectedSince);
-  if (Number.isNaN(parsed.getTime())) {
-    return '';
-  }
-
-  const locale = getActiveLocale();
-  const now = new Date();
-
-  let timeLabel = '';
-  try {
-    timeLabel = new Intl.DateTimeFormat(locale, { timeStyle: 'short' }).format(parsed);
-  } catch (error) {
-    console.warn('Unable to format player time using Intl API', error);
-    timeLabel = parsed.toLocaleTimeString(locale);
-  }
-
-  if (isSameCalendarDay(parsed, now)) {
-    return t('ui.players.connectedSince', { time: timeLabel });
-  }
-
-  let dateLabel = '';
-  try {
-    dateLabel = new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(parsed);
-  } catch (error) {
-    console.warn('Unable to format player date using Intl API', error);
-    dateLabel = parsed.toLocaleDateString(locale);
-  }
-
-  return t('ui.players.connectedSinceWithDate', { date: dateLabel, time: timeLabel });
-}
-
-function isSameCalendarDay(first, second) {
-  return first.getFullYear() === second.getFullYear()
-    && first.getMonth() === second.getMonth()
-    && first.getDate() === second.getDate();
+  playersStage = null;
 }

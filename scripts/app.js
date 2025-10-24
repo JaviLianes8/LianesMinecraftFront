@@ -11,18 +11,15 @@ import {
 } from './services/serverService.js';
 import { getActiveLocale, translate as t } from './ui/i18n.js';
 import { InfoViewState, renderInfo, renderStatus, StatusViewState } from './ui/statusPresenter.js';
-import { createPlayersBackdrop } from './ui/playersBackdrop.js';
+import { createPlayerMascot } from './ui/playerMascot.js';
 
 const statusButton = document.querySelector('[data-role="status-button"]');
 const startButton = document.querySelector('[data-role="start-button"]');
 const stopButton = document.querySelector('[data-role="stop-button"]');
 const infoPanel = document.querySelector('[data-role="info-panel"]');
+const controlCard = document.querySelector('.control-card');
 const torchSvg = document.querySelector('[data-role="torch"]');
 const flame = document.querySelector('[data-role="flame"]');
-const torchContainer = document.querySelector('.torch-container');
-const playersTitle = document.querySelector('[data-role="players-title"]');
-const playersCountIndicator = document.querySelector('[data-role="players-count"]');
-const playersList = document.querySelector('[data-role="players-list"]');
 
 let currentState = ServerLifecycleState.UNKNOWN;
 let statusEligible = false;
@@ -35,7 +32,8 @@ let fallbackPollingId = null;
 let playersStreamSubscription = null;
 let playersSnapshotPromise = null;
 let playersFallbackPollingId = null;
-let playersBackdrop = null;
+let playerMascot = null;
+let currentMascotName = null;
 
 const STATUS_FALLBACK_INTERVAL_MS = 30000;
 
@@ -47,11 +45,10 @@ function initialise() {
   applyLocaleToStaticContent();
   cacheDefaultButtonLabels();
   renderStatus(statusButton, torchSvg, flame, currentState);
-  initialisePlayersBackdrop();
+  initialisePlayerMascot();
   prepareStatusIndicator();
   renderInfo(infoPanel, t('info.stream.connecting'), InfoViewState.PENDING);
   updateControlAvailability();
-  renderPlayersPlaceholder();
 
   startButton.addEventListener('click', handleStartRequest);
   stopButton.addEventListener('click', handleStopRequest);
@@ -99,9 +96,6 @@ function applyLocaleToStaticContent() {
     updateDownloadLinkHref(neoforgeLink, 'neoforge/download');
   }
 
-  if (playersTitle) {
-    playersTitle.textContent = t('ui.players.label');
-  }
 }
 
 function cacheDefaultButtonLabels() {
@@ -497,106 +491,61 @@ function handlePlayersStreamError() {
   });
 }
 
-function handlePlayersUpdate({ players, count }) {
-  const safeCount = typeof count === 'number' && Number.isFinite(count) ? Math.max(0, Math.trunc(count)) : 0;
-  updatePlayersCount(safeCount);
-  renderPlayersList(players);
-  updatePlayersBackdrop(players);
-}
-
-function updatePlayersCount(count) {
-  if (!playersCountIndicator) {
-    return;
-  }
-
-  playersCountIndicator.textContent = String(count);
-  playersCountIndicator.setAttribute('data-count', String(count));
-}
-
-function renderPlayersPlaceholder() {
-  if (!playersList) {
-    return;
-  }
-
-  playersList.innerHTML = '';
-  const emptyItem = document.createElement('li');
-  emptyItem.className = 'players__empty';
-  emptyItem.textContent = t('ui.players.empty');
-  playersList.appendChild(emptyItem);
-  updatePlayersBackdrop([]);
-}
-
-function renderPlayersList(players) {
-  if (!playersList) {
-    return;
-  }
-
-  playersList.innerHTML = '';
-
-  if (!Array.isArray(players) || players.length === 0) {
-    renderPlayersPlaceholder();
-    return;
-  }
-
-  const fragment = document.createDocumentFragment();
-  for (const player of players) {
-    if (!player || typeof player.name !== 'string' || player.name.length === 0) {
-      continue;
-    }
-
-    const item = document.createElement('li');
-    item.className = 'players__item';
-
-    const nameElement = document.createElement('span');
-    nameElement.className = 'players__name';
-    nameElement.textContent = player.name;
-    item.appendChild(nameElement);
-
-    const connectedSince = player.connectedSince ?? player.connected_since;
-    if (connectedSince && typeof connectedSince === 'string') {
-      const sinceElement = document.createElement('time');
-      sinceElement.className = 'players__since';
-      sinceElement.dateTime = connectedSince;
-      sinceElement.textContent = t('ui.players.connectedSince', { value: connectedSince });
-      item.appendChild(sinceElement);
-    }
-
-    fragment.appendChild(item);
-  }
-
-  if (!fragment.childNodes.length) {
-    renderPlayersPlaceholder();
-    return;
-  }
-
-  playersList.appendChild(fragment);
-}
-
 function cleanupAllStreams() {
   cleanupStatusStream();
   cleanupPlayersStream();
-  destroyPlayersBackdrop();
+  destroyPlayerMascot();
 }
 
-function initialisePlayersBackdrop() {
-  if (playersBackdrop || !torchContainer) {
+function handlePlayersUpdate({ players }) {
+  updatePlayerMascot(players);
+}
+
+function initialisePlayerMascot() {
+  if (playerMascot || !controlCard) {
     return;
   }
 
-  playersBackdrop = createPlayersBackdrop({ container: torchContainer });
+  playerMascot = createPlayerMascot({ container: controlCard });
+  if (currentMascotName) {
+    playerMascot.updateName(currentMascotName);
+  }
 }
 
-function updatePlayersBackdrop(players) {
-  if (!playersBackdrop || typeof playersBackdrop.update !== 'function') {
+function updatePlayerMascot(players) {
+  const resolvedName = resolvePreferredPlayerName(players);
+  if (resolvedName === currentMascotName) {
     return;
   }
 
-  playersBackdrop.update(players);
+  currentMascotName = resolvedName;
+  if (playerMascot && typeof playerMascot.updateName === 'function') {
+    playerMascot.updateName(currentMascotName);
+  }
 }
 
-function destroyPlayersBackdrop() {
-  if (playersBackdrop && typeof playersBackdrop.destroy === 'function') {
-    playersBackdrop.destroy();
+function resolvePreferredPlayerName(players) {
+  if (!Array.isArray(players)) {
+    return null;
   }
-  playersBackdrop = null;
+
+  for (const player of players) {
+    if (!player || typeof player.name !== 'string') {
+      continue;
+    }
+
+    const trimmed = player.name.trim();
+    if (trimmed.length > 0) {
+      return trimmed;
+    }
+  }
+
+  return null;
+}
+
+function destroyPlayerMascot() {
+  if (playerMascot && typeof playerMascot.destroy === 'function') {
+    playerMascot.destroy();
+  }
+  playerMascot = null;
 }

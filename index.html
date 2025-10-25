@@ -7,45 +7,22 @@
     <link rel="stylesheet" href="./styles/main.css" />
   </head>
   <body>
-    <header>
-      <div class="header-controls">
-        <button
-          class="status-button status-undefined"
-          data-role="status-button"
-          type="button"
-          aria-live="polite"
-          aria-disabled="true"
-          disabled
-        >
-          STATUS: UNKNOWN
-        </button>
-        <button
-          class="header-controls__help-button"
-          type="button"
-          data-role="install-help-button"
-          aria-haspopup="dialog"
-          aria-expanded="false"
-          aria-controls="installModal"
-        >
-          Need help?
-        </button>
-        <button
-          class="locale-toggle"
-          type="button"
-          data-role="locale-toggle"
-          aria-label="Switch to Spanish"
-          title="Switch to Spanish"
-        >
-          Language: EN
-        </button>
-      </div>
-    </header>
+    <header aria-hidden="true"></header>
 
     <main>
       <section class="control-card" aria-labelledby="mainTitle">
         <div class="control-card__header">
-          <h1 id="mainTitle" class="control-card__title" data-role="main-title">
-            Lianes8 Server
+          <h1 id="mainTitle" class="control-card__title">
+            <button
+              class="status-button status-undefined control-card__title-button"
+              data-role="status-button"
+              type="button"
+              aria-live="polite"
+              aria-disabled="true"
+              disabled
+            >
+              Lianes 8 server Status: UNKNOWN
+            </button>
           </h1>
         </div>
 
@@ -85,11 +62,30 @@
         </div>
 
         <div class="controls" aria-label="Server controls">
+          <button
+            class="control-button control-button--help"
+            type="button"
+            data-role="install-help-button"
+            aria-haspopup="dialog"
+            aria-expanded="false"
+            aria-controls="installModal"
+          >
+            Need help?
+          </button>
           <button class="control-button control-button--start" data-role="start-button" type="button">
             Start Server
           </button>
           <button class="control-button control-button--stop" data-role="stop-button" type="button">
             Stop Server
+          </button>
+          <button
+            class="control-button control-button--locale"
+            type="button"
+            data-role="locale-toggle"
+            aria-label="Switch to Spanish"
+            title="Switch to Spanish"
+          >
+            Language: EN
           </button>
         </div>
 

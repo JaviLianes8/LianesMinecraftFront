@@ -20,6 +20,14 @@ const infoPanel = document.querySelector('[data-role="info-panel"]');
 const controlCard = document.querySelector('.control-card');
 const torchSvg = document.querySelector('[data-role="torch"]');
 const flame = document.querySelector('[data-role="flame"]');
+const javaLink = document.querySelector('[data-role="download-java"]');
+const installHelpButton = document.querySelector('[data-role="install-help-button"]');
+const installModal = document.querySelector('[data-role="install-modal"]');
+const installModalCloseButton = document.querySelector('[data-role="install-modal-close"]');
+const installModalOverlay = document.querySelector('[data-role="install-modal-overlay"]');
+const installModalTitle = document.querySelector('[data-role="install-modal-title"]');
+const installModalBody = document.querySelector('[data-role="install-modal-body"]');
+const installModalContent = document.querySelector('[data-role="install-modal-content"]');
 
 let currentState = ServerLifecycleState.UNKNOWN;
 let statusEligible = false;
@@ -35,6 +43,7 @@ let playersFallbackPollingId = null;
 let playersStage = null;
 
 const STATUS_FALLBACK_INTERVAL_MS = 30000;
+const MODAL_TRANSITION_MS = 200;
 
 const defaultButtonLabels = new Map();
 
@@ -46,6 +55,7 @@ function initialise() {
   renderStatus(statusButton, torchSvg, flame, currentState);
   initialisePlayersStage();
   prepareStatusIndicator();
+  prepareInstallationModal();
   renderInfo(infoPanel, t('info.stream.connecting'), InfoViewState.PENDING);
   updateControlAvailability();
 
@@ -94,6 +104,165 @@ function applyLocaleToStaticContent() {
     neoforgeLink.textContent = t('ui.downloads.neoforge');
     updateDownloadLinkHref(neoforgeLink, 'neoforge/download');
   }
+
+  if (javaLink) {
+    javaLink.textContent = t('ui.downloads.java');
+    javaLink.setAttribute('href', 'https://www.java.com/en/download/');
+  }
+
+  if (installHelpButton) {
+    installHelpButton.textContent = t('ui.downloads.help');
+  }
+
+  if (installModalTitle) {
+    installModalTitle.textContent = t('ui.installation.popup.title');
+  }
+
+  if (installModalBody) {
+    installModalBody.innerHTML = t('ui.installation.popup.body');
+  }
+}
+
+function prepareInstallationModal() {
+  if (!installModal || !installHelpButton) {
+    return;
+  }
+
+  installHelpButton.addEventListener('click', openInstallationModal);
+
+  if (installModalCloseButton) {
+    installModalCloseButton.addEventListener('click', closeInstallationModal);
+  }
+
+  if (installModalOverlay) {
+    installModalOverlay.addEventListener('click', closeInstallationModal);
+  }
+
+  document.addEventListener('keydown', handleModalKeydown);
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('resize', handleModalViewportChange);
+  }
+}
+
+function handleModalKeydown(event) {
+  if (event.key === 'Escape' && installModal?.classList.contains('modal--visible')) {
+    closeInstallationModal();
+  }
+}
+
+function openInstallationModal() {
+  if (!installModal) {
+    return;
+  }
+
+  installModal.removeAttribute('hidden');
+
+  positionModalNearTorch();
+
+  const presentModal = () => {
+    installModal.classList.add('modal--visible');
+    installModal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('modal-open');
+
+    if (installModalCloseButton) {
+      installModalCloseButton.focus();
+    }
+  };
+
+  if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+    window.requestAnimationFrame(presentModal);
+    return;
+  }
+
+  presentModal();
+}
+
+function closeInstallationModal() {
+  if (!installModal) {
+    return;
+  }
+
+  installModal.classList.remove('modal--visible');
+  installModal.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('modal-open');
+  resetModalAnchoring();
+
+  if (installHelpButton) {
+    installHelpButton.focus();
+  }
+
+  const prefersReducedMotion =
+    typeof window !== 'undefined' &&
+    window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const hideModal = () => {
+    installModal.setAttribute('hidden', '');
+  };
+
+  if (prefersReducedMotion) {
+    hideModal();
+    return;
+  }
+
+  const scheduleHide =
+    typeof window !== 'undefined' && typeof window.setTimeout === 'function'
+      ? window.setTimeout.bind(window)
+      : setTimeout;
+
+  scheduleHide(() => {
+    if (!installModal.classList.contains('modal--visible')) {
+      hideModal();
+    }
+  }, MODAL_TRANSITION_MS);
+}
+
+function handleModalViewportChange() {
+  if (!installModal?.classList.contains('modal--visible')) {
+    return;
+  }
+
+  positionModalNearTorch();
+}
+
+function positionModalNearTorch() {
+  if (!installModalContent || !torchSvg) {
+    return;
+  }
+
+  installModalContent.style.removeProperty('--modal-anchored-top');
+
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  const torchBounds = torchSvg.getBoundingClientRect();
+  const modalBounds = installModalContent.getBoundingClientRect();
+  const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+
+  if (!torchBounds || !modalBounds || !viewportHeight) {
+    return;
+  }
+
+  const torchMidpoint = torchBounds.top + torchBounds.height / 2;
+  let desiredTop = torchMidpoint - modalBounds.height / 2;
+
+  const minimumOffset = 16;
+  const maximumOffset = Math.max(minimumOffset, viewportHeight - modalBounds.height - minimumOffset);
+
+  if (Number.isFinite(desiredTop)) {
+    desiredTop = Math.min(Math.max(desiredTop, minimumOffset), maximumOffset);
+    installModalContent.style.setProperty('--modal-anchored-top', `${desiredTop}px`);
+  }
+}
+
+function resetModalAnchoring() {
+  if (!installModalContent) {
+    return;
+  }
+
+  installModalContent.style.removeProperty('--modal-anchored-top');
 }
 
 function cacheDefaultButtonLabels() {

@@ -6,7 +6,7 @@ const SUPPORTED_LOCALES = new Set(['en', 'es']);
 
 const MESSAGES = {
   es: {
-    'ui.title': 'Minecraft Torch — Control del Servidor',
+    'ui.title': 'Lianes8 Server',
     'ui.statusButton.prefix': 'ESTADO',
     'ui.statusButton.label.UNKNOWN': 'DESCONOCIDO',
     'ui.statusButton.label.ONLINE': 'EN LÍNEA',
@@ -22,6 +22,29 @@ const MESSAGES = {
     'ui.downloads.label': 'Descargas:',
     'ui.downloads.mods': 'Mods del cliente',
     'ui.downloads.neoforge': 'NeoForge',
+    'ui.downloads.java': 'Java Runtime (Official site)',
+    'ui.downloads.help': 'Need help?',
+    'ui.installation.popup.title': 'Installation checklist',
+    'ui.installation.popup.body': `
+      <section class="modal-section">
+        <h3>Mods</h3>
+        <p>
+          Copy the extracted <em>Client Mods</em> files into <code>%appdata%/.minecraft/mods</code> and restart Minecraft.
+        </p>
+      </section>
+      <section class="modal-section">
+        <h3>NeoForge</h3>
+        <p>
+          Launch the NeoForge installer, pick the <strong>Client</strong> option, verify the <code>.minecraft</code> path, and confirm to finish the installation.
+        </p>
+      </section>
+      <section class="modal-section">
+        <h3>Java</h3>
+        <p>
+          Download the latest Java Runtime from the official website and follow the setup wizard. Restart your computer if the installer requests it.
+        </p>
+      </section>
+    `,
     'info.stream.connecting': 'Conectando al flujo de estado en tiempo real…',
     'info.stream.connected': 'Actualizaciones en vivo disponibles. Esperando estado del servidor.',
     'info.stream.error': 'No se pudo conectar al flujo de estado. Reintentando…',
@@ -58,7 +81,7 @@ const MESSAGES = {
     'http.504': 'Tiempo de espera de la puerta de enlace agotado',
   },
   en: {
-    'ui.title': 'Minecraft Torch — Server Control',
+    'ui.title': 'Lianes8 Server',
     'ui.statusButton.prefix': 'STATUS',
     'ui.statusButton.label.UNKNOWN': 'UNKNOWN',
     'ui.statusButton.label.ONLINE': 'ONLINE',
@@ -74,6 +97,29 @@ const MESSAGES = {
     'ui.downloads.label': 'Downloads:',
     'ui.downloads.mods': 'Client Mods',
     'ui.downloads.neoforge': 'NeoForge',
+    'ui.downloads.java': 'Java Runtime (Official site)',
+    'ui.downloads.help': 'Need help?',
+    'ui.installation.popup.title': 'Installation checklist',
+    'ui.installation.popup.body': `
+      <section class="modal-section">
+        <h3>Mods</h3>
+        <p>
+          Copy the extracted <em>Client Mods</em> files into <code>%appdata%/.minecraft/mods</code> and restart Minecraft.
+        </p>
+      </section>
+      <section class="modal-section">
+        <h3>NeoForge</h3>
+        <p>
+          Launch the NeoForge installer, pick the <strong>Client</strong> option, verify the <code>.minecraft</code> path, and confirm to finish the installation.
+        </p>
+      </section>
+      <section class="modal-section">
+        <h3>Java</h3>
+        <p>
+          Download the latest Java Runtime from the official website and follow the setup wizard. Restart your computer if the installer requests it.
+        </p>
+      </section>
+    `,
     'info.stream.connecting': 'Connecting to the live status stream…',
     'info.stream.connected': 'Live updates ready. Waiting for server status.',
     'info.stream.error': 'Could not connect to the live status stream. Retrying…',

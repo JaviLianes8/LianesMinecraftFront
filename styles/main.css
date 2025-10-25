@@ -297,8 +297,9 @@ main {
   border-top: 1px dashed #272c37;
   padding-top: 12px;
   display: flex;
+  align-items: center;
   gap: 16px;
-  justify-content: center;
+  justify-content: flex-start;
   flex-wrap: wrap;
   font-size: 14px;
 }
@@ -307,6 +308,109 @@ main {
   color: #a0cfff;
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+.downloads__help {
+  margin-left: auto;
+  padding: 9px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(160, 207, 255, 0.3);
+  background: rgba(160, 207, 255, 0.12);
+  color: #a0cfff;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.downloads__help:hover {
+  box-shadow: 0 0 0 3px rgba(160, 207, 255, 0.18) inset;
+  background: rgba(160, 207, 255, 0.18);
+}
+
+.downloads__help:active {
+  transform: translateY(1px);
+}
+
+.downloads__help:focus-visible {
+  outline: 3px solid rgba(160, 207, 255, 0.45);
+  outline-offset: 2px;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  display: block;
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transition: opacity 0.2s ease;
+  z-index: 20;
+}
+
+.modal--visible {
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
+}
+
+.modal__overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 12, 18, 0.78);
+  backdrop-filter: blur(2px);
+}
+
+.modal__content {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: var(--modal-anchored-top, 72px);
+  background: #141821;
+  border: 1px solid rgba(160, 207, 255, 0.22);
+  border-radius: 18px;
+  padding: 28px 24px 22px;
+  width: min(420px, 90vw);
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 18px;
+  z-index: 1;
+}
+
+.modal__close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  border: none;
+  background: transparent;
+  color: #a0cfff;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.modal__close:hover {
+  color: #d2e6ff;
+}
+
+.modal__body {
+  display: grid;
+  gap: 14px;
+  font-size: 14px;
+  color: #c8d7ef;
+}
+
+.modal-section h3 {
+  margin: 0 0 6px 0;
+  font-size: 16px;
+  color: #f6f7fb;
+}
+
+.modal-section p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+body.modal-open {
+  overflow: hidden;
 }
 
 .info-panel {

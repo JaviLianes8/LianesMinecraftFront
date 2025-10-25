@@ -28,6 +28,7 @@ const installModalOverlay = document.querySelector('[data-role="install-modal-ov
 const installModalTitle = document.querySelector('[data-role="install-modal-title"]');
 const installModalBody = document.querySelector('[data-role="install-modal-body"]');
 const installModalContent = document.querySelector('[data-role="install-modal-content"]');
+const downloadsSection = document.querySelector('[data-role="downloads-section"]');
 
 let currentState = ServerLifecycleState.UNKNOWN;
 let statusEligible = false;
@@ -44,8 +45,10 @@ let playersStage = null;
 
 const STATUS_FALLBACK_INTERVAL_MS = 30000;
 const MODAL_TRANSITION_MS = 200;
-
+const MIN_MODAL_VIEWPORT_PADDING = 24;
 const defaultButtonLabels = new Map();
+
+let removeModalResizeListener = null;
 
 initialise();
 
@@ -128,6 +131,10 @@ function prepareInstallationModal() {
     return;
   }
 
+  if (!installHelpButton.hasAttribute('aria-expanded')) {
+    installHelpButton.setAttribute('aria-expanded', 'false');
+  }
+
   installHelpButton.addEventListener('click', openInstallationModal);
 
   if (installModalCloseButton) {
@@ -140,9 +147,6 @@ function prepareInstallationModal() {
 
   document.addEventListener('keydown', handleModalKeydown);
 
-  if (typeof window !== 'undefined') {
-    window.addEventListener('resize', handleModalViewportChange);
-  }
 }
 
 function handleModalKeydown(event) {
@@ -151,19 +155,87 @@ function handleModalKeydown(event) {
   }
 }
 
+function adjustInstallationModalPosition() {
+  if (!installModalContent || !downloadsSection || !installModal?.classList.contains('modal--visible')) {
+    return;
+  }
+
+  const downloadsRect = downloadsSection.getBoundingClientRect();
+
+  if (downloadsRect.top <= 0) {
+    return;
+  }
+
+  const maxHeight = Math.max(0, downloadsRect.top - MIN_MODAL_VIEWPORT_PADDING);
+
+  installModalContent.style.maxHeight = maxHeight > 0 ? `${maxHeight}px` : '';
+
+  const contentRect = installModalContent.getBoundingClientRect();
+  let top = downloadsRect.top - contentRect.height;
+
+  if (top < MIN_MODAL_VIEWPORT_PADDING) {
+    top = MIN_MODAL_VIEWPORT_PADDING;
+  }
+
+  installModalContent.style.top = `${top}px`;
+}
+
+function ensureModalResizeListener() {
+  if (typeof window === 'undefined' || !installModalContent) {
+    return;
+  }
+
+  if (removeModalResizeListener) {
+    return;
+  }
+
+  const handleResize = () => {
+    adjustInstallationModalPosition();
+  };
+
+  window.addEventListener('resize', handleResize);
+  removeModalResizeListener = () => {
+    window.removeEventListener('resize', handleResize);
+    removeModalResizeListener = null;
+  };
+}
+
+function teardownModalResizeListener() {
+  if (removeModalResizeListener) {
+    removeModalResizeListener();
+  }
+}
+
+function resetInstallationModalPosition() {
+  if (!installModalContent) {
+    return;
+  }
+
+  installModalContent.style.top = '';
+  installModalContent.style.maxHeight = '';
+}
+
 function openInstallationModal() {
   if (!installModal) {
     return;
   }
 
-  installModal.removeAttribute('hidden');
+  if (installHelpButton) {
+    installHelpButton.setAttribute('aria-expanded', 'true');
+  }
 
-  positionModalNearTorch();
+  installModal.removeAttribute('hidden');
 
   const presentModal = () => {
     installModal.classList.add('modal--visible');
     installModal.setAttribute('aria-hidden', 'false');
     document.body.classList.add('modal-open');
+    adjustInstallationModalPosition();
+    ensureModalResizeListener();
+
+    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+      window.requestAnimationFrame(adjustInstallationModalPosition);
+    }
 
     if (installModalCloseButton) {
       installModalCloseButton.focus();
@@ -183,10 +255,14 @@ function closeInstallationModal() {
     return;
   }
 
+  if (installHelpButton) {
+    installHelpButton.setAttribute('aria-expanded', 'false');
+  }
+
   installModal.classList.remove('modal--visible');
   installModal.setAttribute('aria-hidden', 'true');
   document.body.classList.remove('modal-open');
-  resetModalAnchoring();
+  teardownModalResizeListener();
 
   if (installHelpButton) {
     installHelpButton.focus();
@@ -198,6 +274,7 @@ function closeInstallationModal() {
     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const hideModal = () => {
+    resetInstallationModalPosition();
     installModal.setAttribute('hidden', '');
   };
 
@@ -216,53 +293,6 @@ function closeInstallationModal() {
       hideModal();
     }
   }, MODAL_TRANSITION_MS);
-}
-
-function handleModalViewportChange() {
-  if (!installModal?.classList.contains('modal--visible')) {
-    return;
-  }
-
-  positionModalNearTorch();
-}
-
-function positionModalNearTorch() {
-  if (!installModalContent || !torchSvg) {
-    return;
-  }
-
-  installModalContent.style.removeProperty('--modal-anchored-top');
-
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  const torchBounds = torchSvg.getBoundingClientRect();
-  const modalBounds = installModalContent.getBoundingClientRect();
-  const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
-
-  if (!torchBounds || !modalBounds || !viewportHeight) {
-    return;
-  }
-
-  const torchMidpoint = torchBounds.top + torchBounds.height / 2;
-  let desiredTop = torchMidpoint - modalBounds.height / 2;
-
-  const minimumOffset = 16;
-  const maximumOffset = Math.max(minimumOffset, viewportHeight - modalBounds.height - minimumOffset);
-
-  if (Number.isFinite(desiredTop)) {
-    desiredTop = Math.min(Math.max(desiredTop, minimumOffset), maximumOffset);
-    installModalContent.style.setProperty('--modal-anchored-top', `${desiredTop}px`);
-  }
-}
-
-function resetModalAnchoring() {
-  if (!installModalContent) {
-    return;
-  }
-
-  installModalContent.style.removeProperty('--modal-anchored-top');
 }
 
 function cacheDefaultButtonLabels() {

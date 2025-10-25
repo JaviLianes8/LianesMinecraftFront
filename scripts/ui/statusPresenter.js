@@ -76,10 +76,21 @@ export function renderStatus(button, torch, flame, state) {
  * @param {string} [state] Contextual state associated with the message.
  */
 export function renderInfo(container, message, state = InfoViewState.DEFAULT) {
-  container.textContent = message;
+  const resolvedMessage = typeof message === 'string' ? message : '';
+  container.textContent = resolvedMessage;
   const resolvedState = KNOWN_INFO_STATES.has(state)
     ? state
     : InfoViewState.DEFAULT;
   container.dataset.state = resolvedState;
+  const trimmedMessage = resolvedMessage.trim();
+  const hasMessage = trimmedMessage.length > 0;
+  container.setAttribute('data-visible', hasMessage ? 'true' : 'false');
+
+  const overlay = container.closest('[data-role="info-overlay"]');
+  if (overlay) {
+    overlay.classList.toggle('info-overlay--visible', hasMessage);
+    overlay.toggleAttribute('hidden', !hasMessage);
+    overlay.setAttribute('aria-hidden', hasMessage ? 'false' : 'true');
+  }
 }
 

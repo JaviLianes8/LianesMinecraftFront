@@ -23,7 +23,7 @@ const MESSAGES = {
     'ui.downloads.mods': 'Mods del cliente',
     'ui.downloads.neoforge': 'NeoForge',
     'ui.downloads.java': 'Java Runtime (Official site)',
-    'ui.downloads.help': 'Need help?',
+    'ui.downloads.help': '¿Necesitas ayuda?',
     'ui.installation.popup.title': 'Installation checklist',
     'ui.installation.popup.body': `
       <section class="modal-section">

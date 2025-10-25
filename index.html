@@ -70,7 +70,7 @@
           </button>
         </div>
 
-        <div class="downloads" aria-label="Downloads">
+        <div class="downloads" aria-label="Downloads" data-role="downloads-section">
           <strong data-role="downloads-label">Downloads:</strong>
           <a
             href="http://naseevvee.duckdns.org:8000/api/mods/download"
@@ -92,17 +92,10 @@
           >
             Java Runtime (Official)
           </a>
-          <button
-            class="downloads__help"
-            type="button"
-            data-role="install-help-button"
-            aria-haspopup="dialog"
-          >
-            Need help?
-          </button>
         </div>
 
         <div
+          id="installModal"
           class="modal"
           role="dialog"
           aria-modal="true"
@@ -148,9 +141,28 @@
           </div>
         </div>
 
-        <p class="info-panel" data-role="info-panel" role="status" aria-live="polite"></p>
+        <div
+          class="info-overlay"
+          data-role="info-overlay"
+          aria-hidden="true"
+          hidden
+        >
+          <div class="info-overlay__backdrop"></div>
+          <p class="info-panel" data-role="info-panel" role="status" aria-live="polite"></p>
+        </div>
       </section>
     </main>
+
+    <button
+      class="floating-help"
+      type="button"
+      data-role="install-help-button"
+      aria-haspopup="dialog"
+      aria-expanded="false"
+      aria-controls="installModal"
+    >
+      Need help?
+    </button>
 
     <footer>Lianes8 Server</footer>
 

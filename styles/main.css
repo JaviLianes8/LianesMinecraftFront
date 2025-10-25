@@ -339,8 +339,7 @@ main {
 .modal {
   position: fixed;
   inset: 0;
-  display: grid;
-  place-items: center;
+  display: block;
   opacity: 0;
   pointer-events: none;
   visibility: hidden;
@@ -362,7 +361,10 @@ main {
 }
 
 .modal__content {
-  position: relative;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: var(--modal-anchored-top, 72px);
   background: #141821;
   border: 1px solid rgba(160, 207, 255, 0.22);
   border-radius: 18px;

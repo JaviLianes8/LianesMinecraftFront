@@ -27,6 +27,7 @@ const installModalCloseButton = document.querySelector('[data-role="install-moda
 const installModalOverlay = document.querySelector('[data-role="install-modal-overlay"]');
 const installModalTitle = document.querySelector('[data-role="install-modal-title"]');
 const installModalBody = document.querySelector('[data-role="install-modal-body"]');
+const installModalContent = document.querySelector('[data-role="install-modal-content"]');
 
 let currentState = ServerLifecycleState.UNKNOWN;
 let statusEligible = false;
@@ -138,6 +139,10 @@ function prepareInstallationModal() {
   }
 
   document.addEventListener('keydown', handleModalKeydown);
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('resize', handleModalViewportChange);
+  }
 }
 
 function handleModalKeydown(event) {
@@ -152,6 +157,8 @@ function openInstallationModal() {
   }
 
   installModal.removeAttribute('hidden');
+
+  positionModalNearTorch();
 
   const presentModal = () => {
     installModal.classList.add('modal--visible');
@@ -179,6 +186,7 @@ function closeInstallationModal() {
   installModal.classList.remove('modal--visible');
   installModal.setAttribute('aria-hidden', 'true');
   document.body.classList.remove('modal-open');
+  resetModalAnchoring();
 
   if (installHelpButton) {
     installHelpButton.focus();
@@ -208,6 +216,53 @@ function closeInstallationModal() {
       hideModal();
     }
   }, MODAL_TRANSITION_MS);
+}
+
+function handleModalViewportChange() {
+  if (!installModal?.classList.contains('modal--visible')) {
+    return;
+  }
+
+  positionModalNearTorch();
+}
+
+function positionModalNearTorch() {
+  if (!installModalContent || !torchSvg) {
+    return;
+  }
+
+  installModalContent.style.removeProperty('--modal-anchored-top');
+
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  const torchBounds = torchSvg.getBoundingClientRect();
+  const modalBounds = installModalContent.getBoundingClientRect();
+  const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+
+  if (!torchBounds || !modalBounds || !viewportHeight) {
+    return;
+  }
+
+  const torchMidpoint = torchBounds.top + torchBounds.height / 2;
+  let desiredTop = torchMidpoint - modalBounds.height / 2;
+
+  const minimumOffset = 16;
+  const maximumOffset = Math.max(minimumOffset, viewportHeight - modalBounds.height - minimumOffset);
+
+  if (Number.isFinite(desiredTop)) {
+    desiredTop = Math.min(Math.max(desiredTop, minimumOffset), maximumOffset);
+    installModalContent.style.setProperty('--modal-anchored-top', `${desiredTop}px`);
+  }
+}
+
+function resetModalAnchoring() {
+  if (!installModalContent) {
+    return;
+  }
+
+  installModalContent.style.removeProperty('--modal-anchored-top');
 }
 
 function cacheDefaultButtonLabels() {

@@ -23,29 +23,7 @@ const MESSAGES = {
     'ui.downloads.mods': 'Mods del cliente',
     'ui.downloads.neoforge': 'NeoForge',
     'ui.downloads.java': 'Java Runtime (Official site)',
-    'ui.installation.readme.summary': 'Installation README',
-    'ui.installation.readme.heading': 'How to install client mods and NeoForge',
-    'ui.installation.readme.body': `
-      <article class="installation-article">
-        <h3>Install Client Mods</h3>
-        <ol>
-          <li>Press <strong>Win + R</strong>, type <code>%appdata%</code>, and press Enter.</li>
-          <li>Open the <code>.minecraft</code> folder and then <code>mods</code>.</li>
-          <li>Drop every file from the downloaded <em>Client Mods</em> archive into the <code>mods</code> folder.</li>
-          <li>Restart Minecraft to load the new mods.</li>
-        </ol>
-      </article>
-      <article class="installation-article">
-        <h3>Install NeoForge</h3>
-        <ol>
-          <li>Run the <em>NeoForge</em> installer you downloaded.</li>
-          <li>Select the <strong>Client</strong> installation option.</li>
-          <li>Ensure the Minecraft directory points to your <code>.minecraft</code> folder.</li>
-          <li>Click <strong>OK</strong> and wait for the installer to finish.</li>
-        </ol>
-      </article>
-    `,
-    'ui.installation.popup.button': 'Open installation popup',
+    'ui.downloads.help': 'Need help?',
     'ui.installation.popup.title': 'Installation checklist',
     'ui.installation.popup.body': `
       <section class="modal-section">
@@ -120,29 +98,7 @@ const MESSAGES = {
     'ui.downloads.mods': 'Client Mods',
     'ui.downloads.neoforge': 'NeoForge',
     'ui.downloads.java': 'Java Runtime (Official site)',
-    'ui.installation.readme.summary': 'Installation README',
-    'ui.installation.readme.heading': 'How to install client mods and NeoForge',
-    'ui.installation.readme.body': `
-      <article class="installation-article">
-        <h3>Install Client Mods</h3>
-        <ol>
-          <li>Press <strong>Win + R</strong>, type <code>%appdata%</code>, and press Enter.</li>
-          <li>Open the <code>.minecraft</code> folder and then <code>mods</code>.</li>
-          <li>Drop every file from the downloaded <em>Client Mods</em> archive into the <code>mods</code> folder.</li>
-          <li>Restart Minecraft to load the new mods.</li>
-        </ol>
-      </article>
-      <article class="installation-article">
-        <h3>Install NeoForge</h3>
-        <ol>
-          <li>Run the <em>NeoForge</em> installer you downloaded.</li>
-          <li>Select the <strong>Client</strong> installation option.</li>
-          <li>Ensure the Minecraft directory points to your <code>.minecraft</code> folder.</li>
-          <li>Click <strong>OK</strong> and wait for the installer to finish.</li>
-        </ol>
-      </article>
-    `,
-    'ui.installation.popup.button': 'Open installation popup',
+    'ui.downloads.help': 'Need help?',
     'ui.installation.popup.title': 'Installation checklist',
     'ui.installation.popup.body': `
       <section class="modal-section">

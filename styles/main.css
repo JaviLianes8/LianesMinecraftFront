@@ -297,8 +297,9 @@ main {
   border-top: 1px dashed #272c37;
   padding-top: 12px;
   display: flex;
+  align-items: center;
   gap: 16px;
-  justify-content: center;
+  justify-content: flex-start;
   flex-wrap: wrap;
   font-size: 14px;
 }
@@ -309,86 +310,9 @@ main {
   text-underline-offset: 3px;
 }
 
-.installation-guides {
-  width: 100%;
-  display: grid;
-  gap: 16px;
-  justify-items: stretch;
-}
-
-.installation-details {
-  background: rgba(20, 26, 37, 0.7);
-  border: 1px solid rgba(160, 207, 255, 0.15);
-  border-radius: 14px;
-  padding: 12px 18px;
-  color: var(--text);
-}
-
-.installation-details summary {
-  cursor: pointer;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-  list-style: none;
-  position: relative;
-  padding-right: 28px;
-}
-
-.installation-details summary::-webkit-details-marker {
-  display: none;
-}
-
-.installation-details summary::after {
-  content: '▾';
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  transition: transform 0.2s ease;
-}
-
-.installation-details[open] summary::after {
-  transform: translateY(-50%) rotate(180deg);
-}
-
-.installation-content {
-  margin-top: 12px;
-  display: grid;
-  gap: 16px;
-}
-
-.installation-heading {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 700;
-  text-align: center;
-}
-
-.installation-article {
-  background: rgba(14, 15, 20, 0.7);
-  border: 1px solid rgba(160, 207, 255, 0.12);
-  border-radius: 12px;
-  padding: 12px 14px;
-  display: grid;
-  gap: 10px;
-}
-
-.installation-article h3 {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.installation-article ol {
-  margin: 0;
-  padding-left: 18px;
-  display: grid;
-  gap: 6px;
-  font-size: 13px;
-}
-
-.installation-popup-trigger {
-  justify-self: center;
-  padding: 10px 18px;
+.downloads__help {
+  margin-left: auto;
+  padding: 9px 16px;
   border-radius: 12px;
   border: 1px solid rgba(160, 207, 255, 0.3);
   background: rgba(160, 207, 255, 0.12);
@@ -398,13 +322,18 @@ main {
   transition: transform 0.1s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
-.installation-popup-trigger:hover {
+.downloads__help:hover {
   box-shadow: 0 0 0 3px rgba(160, 207, 255, 0.18) inset;
   background: rgba(160, 207, 255, 0.18);
 }
 
-.installation-popup-trigger:active {
+.downloads__help:active {
   transform: translateY(1px);
+}
+
+.downloads__help:focus-visible {
+  outline: 3px solid rgba(160, 207, 255, 0.45);
+  outline-offset: 2px;
 }
 
 .modal {

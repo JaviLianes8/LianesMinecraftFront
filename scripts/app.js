@@ -21,10 +21,7 @@ const controlCard = document.querySelector('.control-card');
 const torchSvg = document.querySelector('[data-role="torch"]');
 const flame = document.querySelector('[data-role="flame"]');
 const javaLink = document.querySelector('[data-role="download-java"]');
-const installReadmeSummary = document.querySelector('[data-role="install-readme-summary"]');
-const installReadmeHeading = document.querySelector('[data-role="install-readme-heading"]');
-const installReadmeContent = document.querySelector('[data-role="install-readme-content"]');
-const installPopupTrigger = document.querySelector('[data-role="install-popup-trigger"]');
+const installHelpButton = document.querySelector('[data-role="install-help-button"]');
 const installModal = document.querySelector('[data-role="install-modal"]');
 const installModalCloseButton = document.querySelector('[data-role="install-modal-close"]');
 const installModalOverlay = document.querySelector('[data-role="install-modal-overlay"]');
@@ -56,7 +53,7 @@ function initialise() {
   renderStatus(statusButton, torchSvg, flame, currentState);
   initialisePlayersStage();
   prepareStatusIndicator();
-  prepareInstallationGuides();
+  prepareInstallationModal();
   renderInfo(infoPanel, t('info.stream.connecting'), InfoViewState.PENDING);
   updateControlAvailability();
 
@@ -111,20 +108,8 @@ function applyLocaleToStaticContent() {
     javaLink.setAttribute('href', 'https://www.java.com/en/download/');
   }
 
-  if (installReadmeSummary) {
-    installReadmeSummary.textContent = t('ui.installation.readme.summary');
-  }
-
-  if (installReadmeHeading) {
-    installReadmeHeading.textContent = t('ui.installation.readme.heading');
-  }
-
-  if (installReadmeContent) {
-    installReadmeContent.innerHTML = t('ui.installation.readme.body');
-  }
-
-  if (installPopupTrigger) {
-    installPopupTrigger.textContent = t('ui.installation.popup.button');
+  if (installHelpButton) {
+    installHelpButton.textContent = t('ui.downloads.help');
   }
 
   if (installModalTitle) {
@@ -136,12 +121,12 @@ function applyLocaleToStaticContent() {
   }
 }
 
-function prepareInstallationGuides() {
-  if (!installModal || !installPopupTrigger) {
+function prepareInstallationModal() {
+  if (!installModal || !installHelpButton) {
     return;
   }
 
-  installPopupTrigger.addEventListener('click', openInstallationModal);
+  installHelpButton.addEventListener('click', openInstallationModal);
 
   if (installModalCloseButton) {
     installModalCloseButton.addEventListener('click', closeInstallationModal);
@@ -183,8 +168,8 @@ function closeInstallationModal() {
   installModal.setAttribute('aria-hidden', 'true');
   document.body.classList.remove('modal-open');
 
-  if (installPopupTrigger) {
-    installPopupTrigger.focus();
+  if (installHelpButton) {
+    installHelpButton.focus();
   }
 }
 

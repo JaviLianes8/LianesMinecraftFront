@@ -154,7 +154,7 @@ main {
   position: relative;
 }
 
-.control-card > *:not(.players-stage) {
+.control-card > *:not(.players-stage):not(.modal):not(.info-overlay) {
   position: relative;
   z-index: 1;
 }

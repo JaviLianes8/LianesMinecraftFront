@@ -55,6 +55,10 @@ const MODAL_TRANSITION_MS = 200;
 const defaultButtonLabels = new Map();
 
 let lastInfoMessageDescriptor = null;
+let statusSnapshotRetryTimeoutId = null;
+let playersSnapshotRetryTimeoutId = null;
+
+const SNAPSHOT_RETRY_DELAY_MS = 5000;
 
 initialise();
 
@@ -515,6 +519,8 @@ function stopFallbackPolling() {
     clearInterval(fallbackPollingId);
     fallbackPollingId = null;
   }
+
+  clearStatusSnapshotRetryTimer();
 }
 
 function startPlayersFallbackPolling() {
@@ -535,6 +541,8 @@ function stopPlayersFallbackPolling() {
 
   clearInterval(playersFallbackPollingId);
   playersFallbackPollingId = null;
+
+  clearPlayersSnapshotRetryTimer();
 }
 
 function startStatusStreamWatchdog() {
@@ -633,6 +641,7 @@ function requestStatusSnapshot({ force = false } = {}) {
         return;
       }
       applyServerLifecycleState(state);
+      clearStatusSnapshotRetryTimer();
     } catch (error) {
       if (statusSnapshotRequestId !== requestId) {
         return;
@@ -643,6 +652,9 @@ function requestStatusSnapshot({ force = false } = {}) {
       updateControlAvailability();
       const errorDescriptor = describeError(error);
       renderInfoMessage({ ...errorDescriptor, state: InfoViewState.ERROR });
+      if (isRetryableSnapshotError(error)) {
+        scheduleStatusSnapshotRetry();
+      }
     } finally {
       if (statusSnapshotRequestId === requestId) {
         statusSnapshotPromise = null;
@@ -667,11 +679,15 @@ function requestPlayersSnapshot({ force = false } = {}) {
         return;
       }
       handlePlayersUpdate(snapshot, { source: 'snapshot' });
+      clearPlayersSnapshotRetryTimer();
     } catch (error) {
       if (playersSnapshotRequestId !== requestId) {
         return;
       }
       console.error('Unable to fetch players snapshot', error);
+      if (isRetryableSnapshotError(error)) {
+        schedulePlayersSnapshotRetry();
+      }
     } finally {
       if (playersSnapshotRequestId === requestId) {
         playersSnapshotPromise = null;
@@ -681,6 +697,50 @@ function requestPlayersSnapshot({ force = false } = {}) {
 
   playersSnapshotPromise = snapshotPromise;
   return snapshotPromise;
+}
+
+function scheduleStatusSnapshotRetry() {
+  if (statusSnapshotRetryTimeoutId) {
+    return;
+  }
+
+  statusSnapshotRetryTimeoutId = setTimeout(() => {
+    statusSnapshotRetryTimeoutId = null;
+    requestStatusSnapshot({ force: true });
+  }, SNAPSHOT_RETRY_DELAY_MS);
+}
+
+function clearStatusSnapshotRetryTimer() {
+  if (!statusSnapshotRetryTimeoutId) {
+    return;
+  }
+
+  clearTimeout(statusSnapshotRetryTimeoutId);
+  statusSnapshotRetryTimeoutId = null;
+}
+
+function schedulePlayersSnapshotRetry() {
+  if (playersSnapshotRetryTimeoutId) {
+    return;
+  }
+
+  playersSnapshotRetryTimeoutId = setTimeout(() => {
+    playersSnapshotRetryTimeoutId = null;
+    requestPlayersSnapshot({ force: true });
+  }, SNAPSHOT_RETRY_DELAY_MS);
+}
+
+function clearPlayersSnapshotRetryTimer() {
+  if (!playersSnapshotRetryTimeoutId) {
+    return;
+  }
+
+  clearTimeout(playersSnapshotRetryTimeoutId);
+  playersSnapshotRetryTimeoutId = null;
+}
+
+function isRetryableSnapshotError(error) {
+  return error instanceof TimeoutError || error instanceof TypeError;
 }
 
 function confirmStopAction() {

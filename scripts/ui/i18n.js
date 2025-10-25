@@ -7,6 +7,7 @@ const SUPPORTED_LOCALES = new Set(['en', 'es']);
 const MESSAGES = {
   es: {
     'ui.title': 'Lianes8 Server',
+    'ui.footer': 'Minecraft server',
     'ui.statusButton.prefix': 'ESTADO',
     'ui.statusButton.label.UNKNOWN': 'DESCONOCIDO',
     'ui.statusButton.label.ONLINE': 'EN LÍNEA',
@@ -24,6 +25,8 @@ const MESSAGES = {
     'ui.downloads.neoforge': 'NeoForge',
     'ui.downloads.java': 'Java Runtime (Official site)',
     'ui.downloads.help': '¿Necesitas ayuda?',
+    'ui.localeToggle.switchTo.en': 'Cambiar a inglés',
+    'ui.localeToggle.switchTo.es': 'Cambiar a español',
     'ui.installation.popup.title': 'Installation checklist',
     'ui.installation.popup.body': `
       <section class="modal-section">
@@ -82,6 +85,7 @@ const MESSAGES = {
   },
   en: {
     'ui.title': 'Lianes8 Server',
+    'ui.footer': 'Minecraft server',
     'ui.statusButton.prefix': 'STATUS',
     'ui.statusButton.label.UNKNOWN': 'UNKNOWN',
     'ui.statusButton.label.ONLINE': 'ONLINE',
@@ -99,6 +103,8 @@ const MESSAGES = {
     'ui.downloads.neoforge': 'NeoForge',
     'ui.downloads.java': 'Java Runtime (Official site)',
     'ui.downloads.help': 'Need help?',
+    'ui.localeToggle.switchTo.en': 'Switch to English',
+    'ui.localeToggle.switchTo.es': 'Switch to Spanish',
     'ui.installation.popup.title': 'Installation checklist',
     'ui.installation.popup.body': `
       <section class="modal-section">

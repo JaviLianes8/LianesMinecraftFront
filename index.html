@@ -8,23 +8,46 @@
   </head>
   <body>
     <header>
-      <button
-        class="status-button status-undefined"
-        data-role="status-button"
-        type="button"
-        aria-live="polite"
-        aria-disabled="true"
-        disabled
-      >
-        STATUS: UNKNOWN
-      </button>
+      <div class="header-controls">
+        <button
+          class="status-button status-undefined"
+          data-role="status-button"
+          type="button"
+          aria-live="polite"
+          aria-disabled="true"
+          disabled
+        >
+          STATUS: UNKNOWN
+        </button>
+        <button
+          class="locale-toggle"
+          type="button"
+          data-role="locale-toggle"
+          aria-label="Switch to Spanish"
+          title="Switch to Spanish"
+        >
+          EN
+        </button>
+      </div>
     </header>
 
     <main>
       <section class="control-card" aria-labelledby="mainTitle">
-        <h1 id="mainTitle" class="control-card__title" data-role="main-title">
-          Lianes8 Server
-        </h1>
+        <div class="control-card__header">
+          <h1 id="mainTitle" class="control-card__title" data-role="main-title">
+            Lianes8 Server
+          </h1>
+          <button
+            class="control-card__help-button"
+            type="button"
+            data-role="install-help-button"
+            aria-haspopup="dialog"
+            aria-expanded="false"
+            aria-controls="installModal"
+          >
+            Need help?
+          </button>
+        </div>
 
         <div class="torch-container">
           <svg
@@ -153,18 +176,7 @@
       </section>
     </main>
 
-    <button
-      class="floating-help"
-      type="button"
-      data-role="install-help-button"
-      aria-haspopup="dialog"
-      aria-expanded="false"
-      aria-controls="installModal"
-    >
-      Need help?
-    </button>
-
-    <footer>Lianes8 Server</footer>
+    <footer data-role="footer">Minecraft server</footer>
 
     <script type="module" src="./scripts/app.js"></script>
   </body>

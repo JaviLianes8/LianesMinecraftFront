@@ -9,15 +9,17 @@ import {
   subscribeToServerStatusStream,
   connectToPlayersStream,
 } from './services/serverService.js';
-import { getActiveLocale, translate as t } from './ui/i18n.js';
+import { getActiveLocale, setLocale, translate as t } from './ui/i18n.js';
 import { InfoViewState, renderInfo, renderStatus, StatusViewState } from './ui/statusPresenter.js';
 import { createPlayersStage } from './ui/playersStage.js';
 
 const statusButton = document.querySelector('[data-role="status-button"]');
+const localeToggleButton = document.querySelector('[data-role="locale-toggle"]');
 const startButton = document.querySelector('[data-role="start-button"]');
 const stopButton = document.querySelector('[data-role="stop-button"]');
 const infoPanel = document.querySelector('[data-role="info-panel"]');
 const controlCard = document.querySelector('.control-card');
+const mainTitleElement = document.querySelector('[data-role="main-title"]');
 const torchSvg = document.querySelector('[data-role="torch"]');
 const flame = document.querySelector('[data-role="flame"]');
 const javaLink = document.querySelector('[data-role="download-java"]');
@@ -28,9 +30,10 @@ const installModalOverlay = document.querySelector('[data-role="install-modal-ov
 const installModalTitle = document.querySelector('[data-role="install-modal-title"]');
 const installModalBody = document.querySelector('[data-role="install-modal-body"]');
 const installModalContent = document.querySelector('[data-role="install-modal-content"]');
-const downloadsSection = document.querySelector('[data-role="downloads-section"]');
+const footerElement = document.querySelector('[data-role="footer"]');
 
 let currentState = ServerLifecycleState.UNKNOWN;
+let currentStatusViewState = StatusViewState.UNKNOWN;
 let statusEligible = false;
 let busy = false;
 let statusStreamSubscription = null;
@@ -48,18 +51,20 @@ const MODAL_TRANSITION_MS = 200;
 const MIN_MODAL_VIEWPORT_PADDING = 24;
 const defaultButtonLabels = new Map();
 
-let removeModalResizeListener = null;
+let removeModalViewportListeners = null;
+let lastInfoMessageDescriptor = null;
 
 initialise();
 
 function initialise() {
   applyLocaleToStaticContent();
   cacheDefaultButtonLabels();
-  renderStatus(statusButton, torchSvg, flame, currentState);
+  applyStatusView(currentStatusViewState);
   initialisePlayersStage();
   prepareStatusIndicator();
   prepareInstallationModal();
-  renderInfo(infoPanel, t('info.stream.connecting'), InfoViewState.PENDING);
+  prepareLocaleToggle();
+  renderInfoMessage({ key: 'info.stream.connecting', state: InfoViewState.PENDING });
   updateControlAvailability();
 
   startButton.addEventListener('click', handleStartRequest);
@@ -80,9 +85,8 @@ function applyLocaleToStaticContent() {
   document.documentElement.lang = locale;
   document.title = t('ui.title');
 
-  const mainTitle = document.querySelector('[data-role="main-title"]');
-  if (mainTitle) {
-    mainTitle.textContent = t('ui.title');
+  if (mainTitleElement) {
+    mainTitleElement.textContent = t('ui.title');
   }
 
   startButton.textContent = t('ui.controls.start');
@@ -124,6 +128,47 @@ function applyLocaleToStaticContent() {
   if (installModalBody) {
     installModalBody.innerHTML = t('ui.installation.popup.body');
   }
+
+  if (footerElement) {
+    footerElement.textContent = t('ui.footer');
+  }
+}
+
+function prepareLocaleToggle() {
+  if (!localeToggleButton) {
+    return;
+  }
+
+  updateLocaleToggleLabel();
+
+  localeToggleButton.addEventListener('click', () => {
+    const locale = getActiveLocale();
+    const nextLocale = locale === 'es' ? 'en' : 'es';
+    setLocale(nextLocale);
+    applyLocaleToStaticContent();
+    cacheDefaultButtonLabels();
+    refreshBusyButtonLabels();
+    applyStatusView(currentStatusViewState);
+    refreshInfoMessage();
+    updateControlAvailability();
+    updateLocaleToggleLabel();
+  });
+}
+
+function updateLocaleToggleLabel() {
+  if (!localeToggleButton) {
+    return;
+  }
+
+  const locale = getActiveLocale();
+  const nextLocale = locale === 'es' ? 'en' : 'es';
+  const labelKey = `ui.localeToggle.switchTo.${nextLocale}`;
+  const label = t(labelKey);
+  localeToggleButton.textContent = locale.toUpperCase();
+  localeToggleButton.setAttribute('data-locale', locale);
+  localeToggleButton.setAttribute('aria-pressed', locale === 'es' ? 'true' : 'false');
+  localeToggleButton.setAttribute('aria-label', label);
+  localeToggleButton.setAttribute('title', label);
 }
 
 function prepareInstallationModal() {
@@ -156,53 +201,57 @@ function handleModalKeydown(event) {
 }
 
 function adjustInstallationModalPosition() {
-  if (!installModalContent || !downloadsSection || !installModal?.classList.contains('modal--visible')) {
+  if (!installModalContent || !installModal?.classList.contains('modal--visible')) {
     return;
   }
 
-  const downloadsRect = downloadsSection.getBoundingClientRect();
+  const hasWindow = typeof window !== 'undefined';
+  const headerElement = mainTitleElement?.closest('.control-card__header');
+  const referenceRect = headerElement?.getBoundingClientRect() ?? mainTitleElement?.getBoundingClientRect();
 
-  if (downloadsRect.top <= 0) {
-    return;
+  let targetTop = referenceRect ? referenceRect.top : MIN_MODAL_VIEWPORT_PADDING;
+  targetTop = Math.max(MIN_MODAL_VIEWPORT_PADDING, targetTop);
+
+  let maxHeightValue = '';
+
+  if (hasWindow) {
+    const viewportHeight = window.innerHeight || 0;
+    const maxTop = Math.max(MIN_MODAL_VIEWPORT_PADDING, viewportHeight - MIN_MODAL_VIEWPORT_PADDING);
+    targetTop = Math.min(targetTop, maxTop);
+    const availableHeight = Math.max(0, viewportHeight - targetTop - MIN_MODAL_VIEWPORT_PADDING);
+    maxHeightValue = availableHeight > 0 ? `${availableHeight}px` : '';
   }
 
-  const maxHeight = Math.max(0, downloadsRect.top - MIN_MODAL_VIEWPORT_PADDING);
-
-  installModalContent.style.maxHeight = maxHeight > 0 ? `${maxHeight}px` : '';
-
-  const contentRect = installModalContent.getBoundingClientRect();
-  let top = downloadsRect.top - contentRect.height;
-
-  if (top < MIN_MODAL_VIEWPORT_PADDING) {
-    top = MIN_MODAL_VIEWPORT_PADDING;
-  }
-
-  installModalContent.style.top = `${top}px`;
+  installModalContent.style.top = `${targetTop}px`;
+  installModalContent.style.maxHeight = maxHeightValue;
 }
 
-function ensureModalResizeListener() {
+function ensureModalViewportListeners() {
   if (typeof window === 'undefined' || !installModalContent) {
     return;
   }
 
-  if (removeModalResizeListener) {
+  if (removeModalViewportListeners) {
     return;
   }
 
-  const handleResize = () => {
+  const handleViewportChange = () => {
     adjustInstallationModalPosition();
   };
 
-  window.addEventListener('resize', handleResize);
-  removeModalResizeListener = () => {
-    window.removeEventListener('resize', handleResize);
-    removeModalResizeListener = null;
+  window.addEventListener('resize', handleViewportChange);
+  window.addEventListener('scroll', handleViewportChange, { passive: true });
+
+  removeModalViewportListeners = () => {
+    window.removeEventListener('resize', handleViewportChange);
+    window.removeEventListener('scroll', handleViewportChange);
+    removeModalViewportListeners = null;
   };
 }
 
-function teardownModalResizeListener() {
-  if (removeModalResizeListener) {
-    removeModalResizeListener();
+function teardownModalViewportListeners() {
+  if (removeModalViewportListeners) {
+    removeModalViewportListeners();
   }
 }
 
@@ -231,7 +280,7 @@ function openInstallationModal() {
     installModal.setAttribute('aria-hidden', 'false');
     document.body.classList.add('modal-open');
     adjustInstallationModalPosition();
-    ensureModalResizeListener();
+    ensureModalViewportListeners();
 
     if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
       window.requestAnimationFrame(adjustInstallationModalPosition);
@@ -262,7 +311,7 @@ function closeInstallationModal() {
   installModal.classList.remove('modal--visible');
   installModal.setAttribute('aria-hidden', 'true');
   document.body.classList.remove('modal-open');
-  teardownModalResizeListener();
+  teardownModalViewportListeners();
 
   if (installHelpButton) {
     installHelpButton.focus();
@@ -298,6 +347,11 @@ function closeInstallationModal() {
 function cacheDefaultButtonLabels() {
   defaultButtonLabels.set(startButton, startButton.textContent.trim());
   defaultButtonLabels.set(stopButton, stopButton.textContent.trim());
+}
+
+function applyStatusView(state) {
+  currentStatusViewState = state;
+  renderStatus(statusButton, torchSvg, flame, state);
 }
 
 function prepareStatusIndicator() {
@@ -347,24 +401,22 @@ function updateDownloadLinkHref(anchor, resourcePath) {
 
 async function handleStartRequest() {
   if (!statusEligible || currentState !== ServerLifecycleState.OFFLINE) {
-    renderInfo(infoPanel, t('info.start.requireOffline'), InfoViewState.ERROR);
+    renderInfoMessage({ key: 'info.start.requireOffline', state: InfoViewState.ERROR });
     return;
   }
 
-  await executeControlAction(
-    () => startServer(),
-    t('info.start.pending'),
-    t('info.start.success'),
-    {
-      sourceButton: startButton,
-      busyLabel: t('ui.controls.start.busy'),
-    },
-  );
+  await executeControlAction(() => startServer(), {
+    pending: 'info.start.pending',
+    success: 'info.start.success',
+  }, {
+    sourceButton: startButton,
+    busyLabelKey: 'ui.controls.start.busy',
+  });
 }
 
 async function handleStopRequest() {
   if (!statusEligible || currentState !== ServerLifecycleState.ONLINE) {
-    renderInfo(infoPanel, t('info.stop.requireOnline'), InfoViewState.ERROR);
+    renderInfoMessage({ key: 'info.stop.requireOnline', state: InfoViewState.ERROR });
     return;
   }
 
@@ -372,41 +424,36 @@ async function handleStopRequest() {
     return;
   }
 
-  await executeControlAction(
-    () => stopServer(),
-    t('info.stop.pending'),
-    t('info.stop.success'),
-    {
-      sourceButton: stopButton,
-      busyLabel: t('ui.controls.stop.busy'),
-    },
-  );
+  await executeControlAction(() => stopServer(), {
+    pending: 'info.stop.pending',
+    success: 'info.stop.success',
+  }, {
+    sourceButton: stopButton,
+    busyLabelKey: 'ui.controls.stop.busy',
+  });
 }
 
-async function executeControlAction(
-  action,
-  pendingMessage,
-  successMessage,
-  options = {},
-) {
+async function executeControlAction(action, messageKeys, options = {}) {
   setBusy(true, StatusViewState.PROCESSING);
-  renderInfo(infoPanel, pendingMessage, InfoViewState.PENDING);
+  renderInfoMessage({ key: messageKeys.pending, state: InfoViewState.PENDING });
 
-  const { sourceButton, busyLabel } = options;
+  const { sourceButton, busyLabelKey } = options;
   const restoreButtonState = sourceButton
-    ? setControlButtonBusy(sourceButton, busyLabel)
+    ? setControlButtonBusy(sourceButton, busyLabelKey)
     : null;
 
   try {
     await action();
     currentState = ServerLifecycleState.UNKNOWN;
     statusEligible = false;
-    renderStatus(statusButton, torchSvg, flame, currentState);
-    renderInfo(infoPanel, successMessage, InfoViewState.SUCCESS);
+    applyStatusView(currentState);
+    renderInfoMessage({ key: messageKeys.success, state: InfoViewState.SUCCESS });
   } catch (error) {
     currentState = ServerLifecycleState.ERROR;
     statusEligible = false;
-    renderInfo(infoPanel, describeError(error), InfoViewState.ERROR);
+    applyStatusView(StatusViewState.ERROR);
+    const errorDescriptor = describeError(error);
+    renderInfoMessage({ ...errorDescriptor, state: InfoViewState.ERROR });
   } finally {
     if (restoreButtonState) {
       restoreButtonState();
@@ -418,7 +465,7 @@ async function executeControlAction(
 function setBusy(value, viewState = currentState) {
   busy = value;
   updateControlAvailability();
-  renderStatus(statusButton, torchSvg, flame, viewState);
+  applyStatusView(viewState);
   statusButton.setAttribute('aria-busy', value ? 'true' : 'false');
 }
 
@@ -434,7 +481,7 @@ function connectToStatusStream() {
   });
 
   if (!statusStreamSubscription.source) {
-    renderInfo(infoPanel, t('info.stream.unsupported'), InfoViewState.ERROR);
+    renderInfoMessage({ key: 'info.stream.unsupported', state: InfoViewState.ERROR });
     startFallbackPolling();
     return;
   }
@@ -465,7 +512,7 @@ function handleStreamOpen() {
   streamHasError = false;
   stopFallbackPolling();
   if (!hasReceivedStatusUpdate) {
-    renderInfo(infoPanel, t('info.stream.connected'), InfoViewState.SUCCESS);
+    renderInfoMessage({ key: 'info.stream.connected', state: InfoViewState.SUCCESS });
   }
 }
 
@@ -483,7 +530,7 @@ function handleStreamError() {
   streamHasError = true;
   const infoKey = hasReceivedStatusUpdate ? 'info.stream.reconnecting' : 'info.stream.error';
   const infoState = hasReceivedStatusUpdate ? InfoViewState.PENDING : InfoViewState.ERROR;
-  renderInfo(infoPanel, t(infoKey), infoState);
+  renderInfoMessage({ key: infoKey, state: infoState });
 
   requestStatusSnapshot().catch((error) => {
     console.error('Unable to refresh status snapshot after stream error', error);
@@ -549,24 +596,24 @@ function applyServerLifecycleState(state) {
   hasReceivedStatusUpdate = true;
   currentState = state;
   statusEligible = state === ServerLifecycleState.ONLINE || state === ServerLifecycleState.OFFLINE;
-  renderStatus(statusButton, torchSvg, flame, state);
+  applyStatusView(state);
   updateControlAvailability();
 
-  const { message, viewState } = resolveLifecycleInfo(state);
-  renderInfo(infoPanel, message, viewState);
+  const descriptor = resolveLifecycleInfo(state);
+  renderInfoMessage(descriptor);
 }
 
 function resolveLifecycleInfo(state) {
   if (state === ServerLifecycleState.ONLINE) {
-    return { message: t('info.online'), viewState: InfoViewState.SUCCESS };
+    return { key: 'info.online', state: InfoViewState.SUCCESS };
   }
   if (state === ServerLifecycleState.OFFLINE) {
-    return { message: t('info.offline'), viewState: InfoViewState.SUCCESS };
+    return { key: 'info.offline', state: InfoViewState.SUCCESS };
   }
   if (state === ServerLifecycleState.ERROR) {
-    return { message: t('info.error'), viewState: InfoViewState.ERROR };
+    return { key: 'info.error', state: InfoViewState.ERROR };
   }
-  return { message: t('info.unknown'), viewState: InfoViewState.PENDING };
+  return { key: 'info.unknown', state: InfoViewState.PENDING };
 }
 
 function requestStatusSnapshot() {
@@ -581,9 +628,10 @@ function requestStatusSnapshot() {
     } catch (error) {
       currentState = ServerLifecycleState.ERROR;
       statusEligible = false;
-      renderStatus(statusButton, torchSvg, flame, StatusViewState.ERROR);
+      applyStatusView(StatusViewState.ERROR);
       updateControlAvailability();
-      renderInfo(infoPanel, describeError(error), InfoViewState.ERROR);
+      const errorDescriptor = describeError(error);
+      renderInfoMessage({ ...errorDescriptor, state: InfoViewState.ERROR });
     } finally {
       statusSnapshotPromise = null;
     }
@@ -626,31 +674,84 @@ function confirmStopAction() {
 
 function describeError(error) {
   if (error instanceof TimeoutError) {
-    return t('error.timeout');
+    return { key: 'error.timeout' };
   }
 
   if (error instanceof HttpError) {
-    const description = describeHttpStatus(error.status);
-    if (description) {
-      return t('error.httpWithDescription', { status: error.status, description });
+    const descriptionKey = describeHttpStatusKey(error.status);
+    if (descriptionKey) {
+      return {
+        key: 'error.httpWithDescription',
+        params: { status: error.status, descriptionKey },
+      };
     }
-    return t('error.httpGeneric', { status: error.status });
+    return { key: 'error.httpGeneric', params: { status: error.status } };
   }
 
   if (error instanceof TypeError) {
-    return t('error.network');
+    return { key: 'error.network' };
   }
 
-  return t('error.generic');
+  return { key: 'error.generic' };
 }
 
-function describeHttpStatus(status) {
+function describeHttpStatusKey(status) {
   if (typeof status !== 'number' || Number.isNaN(status) || status <= 0) {
     return '';
   }
   const key = `http.${status}`;
   const translation = t(key);
-  return translation === key ? '' : translation;
+  return translation === key ? '' : key;
+}
+
+function renderInfoMessage(descriptor) {
+  const normalised = normaliseInfoDescriptor(descriptor);
+  lastInfoMessageDescriptor = normalised;
+  const message = resolveInfoText(normalised);
+  const state = normalised.state ?? InfoViewState.DEFAULT;
+  renderInfo(infoPanel, message, state);
+}
+
+function refreshInfoMessage() {
+  if (!lastInfoMessageDescriptor) {
+    renderInfo(infoPanel, '', InfoViewState.DEFAULT);
+    return;
+  }
+
+  const message = resolveInfoText(lastInfoMessageDescriptor);
+  const state = lastInfoMessageDescriptor.state ?? InfoViewState.DEFAULT;
+  renderInfo(infoPanel, message, state);
+}
+
+function normaliseInfoDescriptor(descriptor) {
+  if (!descriptor) {
+    return { text: '', state: InfoViewState.DEFAULT };
+  }
+
+  if (typeof descriptor === 'string') {
+    return { text: descriptor, state: InfoViewState.DEFAULT };
+  }
+
+  const { key, params, text, state = InfoViewState.DEFAULT } = descriptor;
+
+  if (key) {
+    return { key, params: params ?? {}, state };
+  }
+
+  return { text: typeof text === 'string' ? text : '', state };
+}
+
+function resolveInfoText(descriptor) {
+  if (descriptor.key) {
+    const params = descriptor.params ? { ...descriptor.params } : undefined;
+    if (params && params.descriptionKey) {
+      params.description = t(params.descriptionKey);
+      delete params.descriptionKey;
+    }
+    return t(descriptor.key, params);
+  }
+
+  return typeof descriptor.text === 'string' ? descriptor.text : '';
 }
 
 function updateButtonTooltip(button, message) {
@@ -661,20 +762,38 @@ function updateButtonTooltip(button, message) {
   }
 }
 
-function setControlButtonBusy(button, customLabel) {
-  const label = customLabel ?? t('ui.controls.generic.busy');
+function setControlButtonBusy(button, busyLabelKey) {
+  const key = busyLabelKey ?? 'ui.controls.generic.busy';
+  const label = t(key);
   button.dataset.loading = 'true';
+  button.dataset.busyLabelKey = key;
   button.setAttribute('aria-busy', 'true');
   button.textContent = label;
 
   return () => {
     delete button.dataset.loading;
+    delete button.dataset.busyLabelKey;
     button.setAttribute('aria-busy', 'false');
     const defaultLabel = defaultButtonLabels.get(button);
     if (defaultLabel) {
       button.textContent = defaultLabel;
+      return;
     }
+    button.textContent = t('ui.controls.generic.busy');
   };
+}
+
+function refreshBusyButtonLabels() {
+  const updateLabel = (button) => {
+    if (!button || button.dataset.loading !== 'true') {
+      return;
+    }
+    const key = button.dataset.busyLabelKey || 'ui.controls.generic.busy';
+    button.textContent = t(key);
+  };
+
+  updateLabel(startButton);
+  updateLabel(stopButton);
 }
 
 function handlePlayersStreamOpen() {

@@ -19,7 +19,6 @@ const startButton = document.querySelector('[data-role="start-button"]');
 const stopButton = document.querySelector('[data-role="stop-button"]');
 const infoPanel = document.querySelector('[data-role="info-panel"]');
 const controlCard = document.querySelector('.control-card');
-const mainTitleElement = document.querySelector('[data-role="main-title"]');
 const torchSvg = document.querySelector('[data-role="torch"]');
 const flame = document.querySelector('[data-role="flame"]');
 const minecraftLink = document.querySelector('[data-role="download-minecraft"]');
@@ -82,10 +81,6 @@ function applyLocaleToStaticContent() {
   const locale = getActiveLocale();
   document.documentElement.lang = locale;
   document.title = t('ui.title');
-
-  if (mainTitleElement) {
-    mainTitleElement.textContent = t('ui.title');
-  }
 
   startButton.textContent = t('ui.controls.start');
   startButton.setAttribute('aria-label', startButton.textContent);

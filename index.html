@@ -141,7 +141,15 @@
           </div>
         </div>
 
-        <p class="info-panel" data-role="info-panel" role="status" aria-live="polite"></p>
+        <div
+          class="info-overlay"
+          data-role="info-overlay"
+          aria-hidden="true"
+          hidden
+        >
+          <div class="info-overlay__backdrop"></div>
+          <p class="info-panel" data-role="info-panel" role="status" aria-live="polite"></p>
+        </div>
       </section>
     </main>
 

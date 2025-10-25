@@ -428,6 +428,31 @@ body.modal-open .floating-help {
   pointer-events: none;
 }
 
+.info-overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  z-index: 40;
+  padding: 12px;
+}
+
+.info-overlay--visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.info-overlay__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 12, 18, 0.78);
+  backdrop-filter: blur(2px);
+}
+
 .info-panel {
   font-size: 13px;
   color: #aab3c2;
@@ -437,11 +462,25 @@ body.modal-open .floating-help {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  padding: 10px 16px;
+  padding: 12px 18px;
   border-radius: 14px;
   border: 1px solid rgba(160, 207, 255, 0.1);
-  background: rgba(255, 255, 255, 0.03);
-  transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+  background: rgba(255, 255, 255, 0.08);
+  transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease,
+    transform 0.2s ease, opacity 0.2s ease;
+  box-shadow: var(--shadow);
+  position: relative;
+  z-index: 1;
+  width: min(420px, calc(100vw - 48px));
+  line-height: 1.5;
+  opacity: 0;
+  transform: translateY(12px);
+  pointer-events: auto;
+}
+
+.info-overlay--visible .info-panel {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .info-panel::before {

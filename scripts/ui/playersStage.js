@@ -15,7 +15,7 @@ const PLAYER_SKINS = new Map([
   ['bruyan', drawDeadpoolSkin],
   ['wladymir14', drawPeakyBlindersSkin],
   ['alexethe', drawGeoOperatorSkin],
-  ['alexconsta09', drawEzioSkin],
+  ['AlexconstA', drawEzioSkin],
 ]);
 
 /**

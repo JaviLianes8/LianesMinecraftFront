@@ -6,9 +6,9 @@ const SUPPORTED_LOCALES = new Set(['en', 'es']);
 
 const MESSAGES = {
   es: {
-    'ui.title': 'Lianes 8 Server',
+    'ui.title': 'Lianes8 Server',
     'ui.footer': 'Minecraft server',
-    'ui.statusButton.prefix': 'Lianes 8 server Estado',
+    'ui.statusButton.prefix': 'Lianes8 server Estado',
     'ui.statusButton.label.UNKNOWN': 'Desconocido',
     'ui.statusButton.label.ONLINE': 'En línea',
     'ui.statusButton.label.OFFLINE': 'Fuera de línea',
@@ -95,9 +95,9 @@ const MESSAGES = {
     'http.504': 'Tiempo de espera de la puerta de enlace agotado',
   },
   en: {
-    'ui.title': 'Lianes 8 Server',
+    'ui.title': 'Lianes8 Server',
     'ui.footer': 'Minecraft server',
-    'ui.statusButton.prefix': 'Lianes 8 server Status',
+    'ui.statusButton.prefix': 'Lianes8 server Status',
     'ui.statusButton.label.UNKNOWN': 'Unknown',
     'ui.statusButton.label.ONLINE': 'Online',
     'ui.statusButton.label.OFFLINE': 'Offline',

@@ -370,9 +370,9 @@ main {
 
 .modal__content {
   position: absolute;
-  top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
+  top: clamp(24px, 12vh, 120px);
+  transform: translateX(-50%);
   background: #141821;
   border: 1px solid rgba(160, 207, 255, 0.22);
   border-radius: 18px;

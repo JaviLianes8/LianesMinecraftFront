@@ -20,7 +20,8 @@ body {
 
 body {
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  min-height: 100dvh;
+  grid-template-rows: auto minmax(0, 1fr) auto;
 }
 
 header,
@@ -137,7 +138,11 @@ footer {
 main {
   display: grid;
   place-items: center;
-  padding: 24px 12px 10px;
+  align-content: center;
+  padding: clamp(16px, 6vh, 28px) clamp(12px, 4vw, 24px);
+  min-height: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .control-card {
@@ -145,13 +150,14 @@ main {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 18px;
-  padding: 22px;
+  padding: clamp(18px, 5vh, 26px);
   box-shadow: var(--shadow);
   display: grid;
-  gap: 20px;
+  gap: clamp(16px, 4vh, 24px);
   align-items: center;
   justify-items: center;
   position: relative;
+  box-sizing: border-box;
 }
 
 .control-card > *:not(.players-stage):not(.modal) {
@@ -235,7 +241,7 @@ main {
   position: relative;
   display: grid;
   place-items: center;
-  padding: 14px;
+  padding: clamp(10px, 3vh, 14px);
 }
 
 .players-stage {
@@ -250,7 +256,7 @@ main {
 .torch {
   position: relative;
   z-index: 1;
-  width: min(200px, 40vw);
+  width: clamp(150px, 32vw, 200px);
   filter: drop-shadow(0 12px 22px rgba(0, 0, 0, 0.6));
   transition: filter 0.2s ease;
 }
@@ -304,13 +310,13 @@ main {
 .downloads {
   width: 100%;
   border-top: 1px dashed #272c37;
-  padding-top: 12px;
+  padding-top: clamp(8px, 2.6vh, 14px);
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: clamp(10px, 2.8vh, 16px);
   justify-content: center;
   flex-wrap: wrap;
-  font-size: 14px;
+  font-size: clamp(13px, 2.6vh, 14px);
   text-align: center;
 }
 
@@ -318,6 +324,47 @@ main {
   color: #a0cfff;
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+
+@media (max-height: 780px) {
+  main {
+    place-items: start center;
+    align-content: start;
+    padding-top: clamp(12px, 4vh, 20px);
+    padding-bottom: clamp(14px, 5vh, 22px);
+  }
+
+  .control-card {
+    margin-top: 8px;
+  }
+}
+
+@media (max-height: 640px) {
+  header,
+  footer {
+    padding-block: clamp(10px, 3vh, 14px);
+  }
+
+  main {
+    padding-top: clamp(10px, 3vh, 16px);
+    padding-bottom: clamp(12px, 4vh, 18px);
+  }
+
+  .control-card {
+    width: min(860px, 96vw);
+    padding: clamp(16px, 4vh, 22px);
+    gap: clamp(12px, 3vh, 20px);
+  }
+
+  .header-controls {
+    gap: clamp(6px, 2vh, 10px);
+  }
+
+  .downloads {
+    gap: 10px;
+    font-size: 13px;
+  }
 }
 
 

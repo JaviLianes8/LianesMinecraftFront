@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Server Control</title>
+    <title>Lianes8 Server</title>
     <link rel="stylesheet" href="./styles/main.css" />
   </head>
   <body>
@@ -23,7 +23,7 @@
     <main>
       <section class="control-card" aria-labelledby="mainTitle">
         <h1 id="mainTitle" class="control-card__title" data-role="main-title">
-          Minecraft Torch — Server Control
+          Lianes8 Server
         </h1>
 
         <div class="torch-container">
@@ -84,13 +84,108 @@
           >
             NeoForge
           </a>
+          <a
+            href="https://www.java.com/en/download/"
+            data-role="download-java"
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            Java Runtime (Official)
+          </a>
+        </div>
+
+        <section class="installation-guides" aria-label="Installation guidance">
+          <details class="installation-details" data-role="install-readme">
+            <summary data-role="install-readme-summary">Installation README</summary>
+            <div class="installation-content">
+              <h2 class="installation-heading" data-role="install-readme-heading">
+                How to install client mods and NeoForge
+              </h2>
+              <div data-role="install-readme-content">
+                <article class="installation-article">
+                  <h3>Install Client Mods</h3>
+                  <ol>
+                    <li>Press <strong>Win + R</strong>, type <code>%appdata%</code>, and press Enter.</li>
+                    <li>Open the <code>.minecraft</code> folder and then <code>mods</code>.</li>
+                    <li>
+                      Drop every file from the downloaded <em>Client Mods</em> archive into the
+                      <code>mods</code> folder.
+                    </li>
+                    <li>Restart Minecraft to load the new mods.</li>
+                  </ol>
+                </article>
+                <article class="installation-article">
+                  <h3>Install NeoForge</h3>
+                  <ol>
+                    <li>Run the <em>NeoForge</em> installer you downloaded.</li>
+                    <li>Select the <strong>Client</strong> installation option.</li>
+                    <li>Ensure the Minecraft directory points to your <code>.minecraft</code> folder.</li>
+                    <li>Click <strong>OK</strong> and wait for the installer to finish.</li>
+                  </ol>
+                </article>
+              </div>
+            </div>
+          </details>
+
+          <button
+            class="installation-popup-trigger"
+            type="button"
+            data-role="install-popup-trigger"
+          >
+            Open installation popup
+          </button>
+        </section>
+
+        <div
+          class="modal"
+          role="dialog"
+          aria-modal="true"
+          aria-hidden="true"
+          aria-labelledby="installModalTitle"
+          data-role="install-modal"
+        >
+          <div class="modal__overlay" data-role="install-modal-overlay"></div>
+          <div class="modal__content" role="document">
+            <button
+              type="button"
+              class="modal__close"
+              aria-label="Close installation popup"
+              data-role="install-modal-close"
+            >
+              ×
+            </button>
+            <h2 id="installModalTitle" data-role="install-modal-title">Installation checklist</h2>
+            <div class="modal__body" data-role="install-modal-body">
+              <section class="modal-section">
+                <h3>Mods</h3>
+                <p>
+                  Copy the extracted <em>Client Mods</em> files into
+                  <code>%appdata%/.minecraft/mods</code> and restart Minecraft.
+                </p>
+              </section>
+              <section class="modal-section">
+                <h3>NeoForge</h3>
+                <p>
+                  Launch the NeoForge installer, pick the <strong>Client</strong> option, verify the
+                  <code>.minecraft</code> path, and confirm to finish the installation.
+                </p>
+              </section>
+              <section class="modal-section">
+                <h3>Java</h3>
+                <p>
+                  Download the latest Java Runtime from the official website and follow the setup
+                  wizard. Restart your computer if the installer requests it.
+                </p>
+              </section>
+            </div>
+          </div>
         </div>
 
         <p class="info-panel" data-role="info-panel" role="status" aria-live="polite"></p>
       </section>
     </main>
 
-    <footer>Minecraft Server</footer>
+    <footer>Lianes8 Server</footer>
 
     <script type="module" src="./scripts/app.js"></script>
   </body>

@@ -395,7 +395,7 @@ main {
   pointer-events: none;
   visibility: hidden;
   transition: opacity 0.2s ease;
-  z-index: 20;
+  z-index: 60;
 }
 
 .modal--visible {

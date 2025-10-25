@@ -26,17 +26,26 @@ body {
 header,
 footer {
   padding: 16px 20px;
-  text-align: center;
 }
 
 header {
-  position: relative;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+}
+
+footer {
+  text-align: center;
+}
+
+.header-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
 }
 
 .status-button {
-  position: absolute;
-  right: 20px;
-  top: 14px;
   font-size: clamp(18px, 3vw, 28px);
   font-weight: 800;
   letter-spacing: 0.6px;
@@ -312,11 +321,48 @@ main {
 }
 
 
-.floating-help {
-  position: fixed;
-  right: clamp(12px, 4vw, 28px);
-  bottom: clamp(12px, 4vw, 28px);
-  padding: 12px 18px;
+.locale-toggle {
+  padding: 8px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(160, 207, 255, 0.35);
+  background: rgba(160, 207, 255, 0.12);
+  color: #e6f1ff;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(9, 12, 20, 0.35);
+  transition: transform 0.1s ease, box-shadow 0.2s ease, background 0.2s ease, opacity 0.2s ease;
+  min-width: 54px;
+}
+
+.locale-toggle:hover {
+  background: rgba(160, 207, 255, 0.2);
+  box-shadow: 0 10px 24px rgba(9, 12, 20, 0.45);
+}
+
+.locale-toggle:active {
+  transform: translateY(1px);
+}
+
+.locale-toggle:focus-visible {
+  outline: 3px solid rgba(160, 207, 255, 0.45);
+  outline-offset: 2px;
+}
+
+.control-card__header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding-right: clamp(96px, 26vw, 180px);
+}
+
+.control-card__help-button {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 10px 16px;
   border-radius: 14px;
   border: 1px solid rgba(160, 207, 255, 0.35);
   background: rgba(160, 207, 255, 0.16);
@@ -325,21 +371,19 @@ main {
   cursor: pointer;
   box-shadow: 0 10px 26px rgba(9, 12, 20, 0.45);
   transition: transform 0.1s ease, box-shadow 0.2s ease, background 0.2s ease, opacity 0.2s ease;
-  z-index: 30;
-  max-width: calc(100vw - 24px);
-  white-space: normal;
+  max-width: calc(100% - 24px);
 }
 
-.floating-help:hover {
+.control-card__help-button:hover {
   background: rgba(160, 207, 255, 0.22);
   box-shadow: 0 12px 32px rgba(9, 12, 20, 0.55);
 }
 
-.floating-help:active {
-  transform: translateY(1px);
+.control-card__help-button:active {
+  transform: translateY(calc(-50% + 1px));
 }
 
-.floating-help:focus-visible {
+.control-card__help-button:focus-visible {
   outline: 3px solid rgba(160, 207, 255, 0.45);
   outline-offset: 2px;
 }
@@ -423,7 +467,7 @@ body.modal-open {
   overflow: hidden;
 }
 
-body.modal-open .floating-help {
+body.modal-open .control-card__help-button {
   opacity: 0;
   pointer-events: none;
 }

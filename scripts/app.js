@@ -44,8 +44,13 @@ let playersStreamSubscription = null;
 let playersSnapshotPromise = null;
 let playersFallbackPollingId = null;
 let playersStage = null;
+let statusStreamWatchdogId = null;
+let playersStreamWatchdogId = null;
+let statusSnapshotRequestId = 0;
+let playersSnapshotRequestId = 0;
 
 const STATUS_FALLBACK_INTERVAL_MS = 30000;
+const STREAM_CONNECTION_GRACE_PERIOD_MS = 10000;
 const MODAL_TRANSITION_MS = 200;
 const defaultButtonLabels = new Map();
 
@@ -415,6 +420,7 @@ function connectToStatusStream() {
   }
 
   stopFallbackPolling();
+  startStatusStreamWatchdog();
 }
 
 function connectToPlayersStreamChannel() {
@@ -428,17 +434,21 @@ function connectToPlayersStreamChannel() {
 
   if (!subscription.source) {
     startPlayersFallbackPolling();
-    requestPlayersSnapshot();
+    requestPlayersSnapshot({ force: true });
     return;
   }
 
   playersStreamSubscription = subscription;
   stopPlayersFallbackPolling();
+  startPlayersStreamWatchdog();
 }
 
 function handleStreamOpen() {
   streamHasError = false;
-  stopFallbackPolling();
+  startStatusStreamWatchdog();
+  if (hasReceivedStatusUpdate) {
+    stopFallbackPolling();
+  }
   if (!hasReceivedStatusUpdate) {
     renderInfoMessage({ key: 'info.stream.connected', state: InfoViewState.SUCCESS });
   }
@@ -446,10 +456,13 @@ function handleStreamOpen() {
 
 function handleStreamStatusUpdate({ state }) {
   streamHasError = false;
+  stopStatusStreamWatchdog();
+  stopFallbackPolling();
   applyServerLifecycleState(state);
 }
 
 function handleStreamError() {
+  stopStatusStreamWatchdog();
   startFallbackPolling();
   if (streamHasError) {
     return;
@@ -460,11 +473,11 @@ function handleStreamError() {
   const infoState = hasReceivedStatusUpdate ? InfoViewState.PENDING : InfoViewState.ERROR;
   renderInfoMessage({ key: infoKey, state: infoState });
 
-  requestStatusSnapshot().catch((error) => {
+  requestStatusSnapshot({ force: true }).catch((error) => {
     console.error('Unable to refresh status snapshot after stream error', error);
   });
 
-  requestPlayersSnapshot().catch((error) => {
+  requestPlayersSnapshot({ force: true }).catch((error) => {
     console.error('Unable to refresh players snapshot after stream error', error);
   });
 }
@@ -475,6 +488,7 @@ function cleanupStatusStream() {
   }
   statusStreamSubscription = null;
   stopFallbackPolling();
+  stopStatusStreamWatchdog();
 }
 
 function cleanupPlayersStream() {
@@ -483,12 +497,14 @@ function cleanupPlayersStream() {
   }
   playersStreamSubscription = null;
   stopPlayersFallbackPolling();
+  stopPlayersStreamWatchdog();
 }
 
 function startFallbackPolling() {
   stopFallbackPolling();
+  stopStatusStreamWatchdog();
   fallbackPollingId = setInterval(() => {
-    requestStatusSnapshot();
+    requestStatusSnapshot({ force: true });
   }, STATUS_FALLBACK_INTERVAL_MS);
 
   startPlayersFallbackPolling();
@@ -506,8 +522,9 @@ function startPlayersFallbackPolling() {
     return;
   }
 
+  stopPlayersStreamWatchdog();
   playersFallbackPollingId = setInterval(() => {
-    requestPlayersSnapshot();
+    requestPlayersSnapshot({ force: true });
   }, STATUS_FALLBACK_INTERVAL_MS);
 }
 
@@ -518,6 +535,65 @@ function stopPlayersFallbackPolling() {
 
   clearInterval(playersFallbackPollingId);
   playersFallbackPollingId = null;
+}
+
+function startStatusStreamWatchdog() {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  stopStatusStreamWatchdog();
+  statusStreamWatchdogId = window.setTimeout(() => {
+    statusStreamWatchdogId = null;
+    handleStatusStreamStall();
+  }, STREAM_CONNECTION_GRACE_PERIOD_MS);
+}
+
+function stopStatusStreamWatchdog() {
+  if (!statusStreamWatchdogId) {
+    return;
+  }
+
+  clearTimeout(statusStreamWatchdogId);
+  statusStreamWatchdogId = null;
+}
+
+function handleStatusStreamStall() {
+  const infoKey = hasReceivedStatusUpdate ? 'info.stream.reconnecting' : 'info.stream.error';
+  const infoState = hasReceivedStatusUpdate ? InfoViewState.PENDING : InfoViewState.ERROR;
+  renderInfoMessage({ key: infoKey, state: infoState });
+  startFallbackPolling();
+  requestStatusSnapshot({ force: true }).catch((error) => {
+    console.error('Unable to refresh status snapshot after stream stall', error);
+  });
+}
+
+function startPlayersStreamWatchdog() {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  stopPlayersStreamWatchdog();
+  playersStreamWatchdogId = window.setTimeout(() => {
+    playersStreamWatchdogId = null;
+    handlePlayersStreamStall();
+  }, STREAM_CONNECTION_GRACE_PERIOD_MS);
+}
+
+function stopPlayersStreamWatchdog() {
+  if (!playersStreamWatchdogId) {
+    return;
+  }
+
+  clearTimeout(playersStreamWatchdogId);
+  playersStreamWatchdogId = null;
+}
+
+function handlePlayersStreamStall() {
+  startPlayersFallbackPolling();
+  requestPlayersSnapshot({ force: true }).catch((error) => {
+    console.error('Unable to refresh players snapshot after stream stall', error);
+  });
 }
 
 function applyServerLifecycleState(state) {
@@ -544,16 +620,23 @@ function resolveLifecycleInfo(state) {
   return { key: 'info.unknown', state: InfoViewState.PENDING };
 }
 
-function requestStatusSnapshot() {
-  if (statusSnapshotPromise) {
+function requestStatusSnapshot({ force = false } = {}) {
+  if (statusSnapshotPromise && !force) {
     return statusSnapshotPromise;
   }
 
-  statusSnapshotPromise = (async () => {
+  const requestId = ++statusSnapshotRequestId;
+  const snapshotPromise = (async () => {
     try {
       const { state } = await fetchServerStatus();
+      if (statusSnapshotRequestId !== requestId) {
+        return;
+      }
       applyServerLifecycleState(state);
     } catch (error) {
+      if (statusSnapshotRequestId !== requestId) {
+        return;
+      }
       currentState = ServerLifecycleState.ERROR;
       statusEligible = false;
       applyStatusView(StatusViewState.ERROR);
@@ -561,30 +644,43 @@ function requestStatusSnapshot() {
       const errorDescriptor = describeError(error);
       renderInfoMessage({ ...errorDescriptor, state: InfoViewState.ERROR });
     } finally {
-      statusSnapshotPromise = null;
+      if (statusSnapshotRequestId === requestId) {
+        statusSnapshotPromise = null;
+      }
     }
   })();
 
-  return statusSnapshotPromise;
+  statusSnapshotPromise = snapshotPromise;
+  return snapshotPromise;
 }
 
-function requestPlayersSnapshot() {
-  if (playersSnapshotPromise) {
+function requestPlayersSnapshot({ force = false } = {}) {
+  if (playersSnapshotPromise && !force) {
     return playersSnapshotPromise;
   }
 
-  playersSnapshotPromise = (async () => {
+  const requestId = ++playersSnapshotRequestId;
+  const snapshotPromise = (async () => {
     try {
       const snapshot = await fetchPlayersSnapshot();
+      if (playersSnapshotRequestId !== requestId) {
+        return;
+      }
       handlePlayersUpdate(snapshot);
     } catch (error) {
+      if (playersSnapshotRequestId !== requestId) {
+        return;
+      }
       console.error('Unable to fetch players snapshot', error);
     } finally {
-      playersSnapshotPromise = null;
+      if (playersSnapshotRequestId === requestId) {
+        playersSnapshotPromise = null;
+      }
     }
   })();
 
-  return playersSnapshotPromise;
+  playersSnapshotPromise = snapshotPromise;
+  return snapshotPromise;
 }
 
 function confirmStopAction() {
@@ -725,12 +821,14 @@ function refreshBusyButtonLabels() {
 }
 
 function handlePlayersStreamOpen() {
+  startPlayersStreamWatchdog();
   stopPlayersFallbackPolling();
 }
 
 function handlePlayersStreamError() {
+  stopPlayersStreamWatchdog();
   startPlayersFallbackPolling();
-  requestPlayersSnapshot().catch((error) => {
+  requestPlayersSnapshot({ force: true }).catch((error) => {
     console.error('Unable to refresh players snapshot after stream error', error);
   });
 }
@@ -742,8 +840,10 @@ function cleanupAllStreams() {
 }
 
 function handlePlayersUpdate(snapshot) {
+  stopPlayersStreamWatchdog();
   const players = snapshot && Array.isArray(snapshot.players) ? snapshot.players : [];
   updatePlayersStage(players);
+  stopPlayersFallbackPolling();
 }
 
 function initialisePlayersStage() {

@@ -353,15 +353,9 @@ main {
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
-  padding-right: clamp(96px, 26vw, 180px);
 }
 
-.control-card__help-button {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
+.header-controls__help-button {
   padding: 10px 16px;
   border-radius: 14px;
   border: 1px solid rgba(160, 207, 255, 0.35);
@@ -371,19 +365,22 @@ main {
   cursor: pointer;
   box-shadow: 0 10px 26px rgba(9, 12, 20, 0.45);
   transition: transform 0.1s ease, box-shadow 0.2s ease, background 0.2s ease, opacity 0.2s ease;
-  max-width: calc(100% - 24px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
-.control-card__help-button:hover {
+.header-controls__help-button:hover {
   background: rgba(160, 207, 255, 0.22);
   box-shadow: 0 12px 32px rgba(9, 12, 20, 0.55);
 }
 
-.control-card__help-button:active {
-  transform: translateY(calc(-50% + 1px));
+.header-controls__help-button:active {
+  transform: translateY(1px);
 }
 
-.control-card__help-button:focus-visible {
+.header-controls__help-button:focus-visible {
   outline: 3px solid rgba(160, 207, 255, 0.45);
   outline-offset: 2px;
 }
@@ -467,7 +464,7 @@ body.modal-open {
   overflow: hidden;
 }
 
-body.modal-open .control-card__help-button {
+body.modal-open .header-controls__help-button {
   opacity: 0;
   pointer-events: none;
 }

@@ -565,7 +565,11 @@ body.modal-open .header-controls__help-button {
 .info-panel[data-state='success']::after {
   display: inline-flex;
   content: '✔';
-  background: rgba(35, 209, 139, 0.2);
+  width: auto;
+  height: auto;
+  padding: 0;
+  background: none;
+  border-radius: 0;
   color: var(--ok);
 }
 
@@ -578,7 +582,11 @@ body.modal-open .header-controls__help-button {
 .info-panel[data-state='error']::after {
   display: inline-flex;
   content: '✖';
-  background: rgba(255, 77, 77, 0.2);
+  width: auto;
+  height: auto;
+  padding: 0;
+  background: none;
+  border-radius: 0;
   color: var(--bad);
 }
 

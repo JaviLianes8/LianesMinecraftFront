@@ -51,7 +51,7 @@ const MODAL_TRANSITION_MS = 200;
 const MIN_MODAL_VIEWPORT_PADDING = 24;
 const defaultButtonLabels = new Map();
 
-let removeModalResizeListener = null;
+let removeModalViewportListeners = null;
 let lastInfoMessageDescriptor = null;
 
 initialise();
@@ -206,9 +206,10 @@ function adjustInstallationModalPosition() {
   }
 
   const hasWindow = typeof window !== 'undefined';
-  const titleRect = mainTitleElement?.getBoundingClientRect();
+  const headerElement = mainTitleElement?.closest('.control-card__header');
+  const referenceRect = headerElement?.getBoundingClientRect() ?? mainTitleElement?.getBoundingClientRect();
 
-  let targetTop = titleRect ? titleRect.top : MIN_MODAL_VIEWPORT_PADDING;
+  let targetTop = referenceRect ? referenceRect.top : MIN_MODAL_VIEWPORT_PADDING;
   targetTop = Math.max(MIN_MODAL_VIEWPORT_PADDING, targetTop);
 
   let maxHeightValue = '';
@@ -225,29 +226,32 @@ function adjustInstallationModalPosition() {
   installModalContent.style.maxHeight = maxHeightValue;
 }
 
-function ensureModalResizeListener() {
+function ensureModalViewportListeners() {
   if (typeof window === 'undefined' || !installModalContent) {
     return;
   }
 
-  if (removeModalResizeListener) {
+  if (removeModalViewportListeners) {
     return;
   }
 
-  const handleResize = () => {
+  const handleViewportChange = () => {
     adjustInstallationModalPosition();
   };
 
-  window.addEventListener('resize', handleResize);
-  removeModalResizeListener = () => {
-    window.removeEventListener('resize', handleResize);
-    removeModalResizeListener = null;
+  window.addEventListener('resize', handleViewportChange);
+  window.addEventListener('scroll', handleViewportChange, { passive: true });
+
+  removeModalViewportListeners = () => {
+    window.removeEventListener('resize', handleViewportChange);
+    window.removeEventListener('scroll', handleViewportChange);
+    removeModalViewportListeners = null;
   };
 }
 
-function teardownModalResizeListener() {
-  if (removeModalResizeListener) {
-    removeModalResizeListener();
+function teardownModalViewportListeners() {
+  if (removeModalViewportListeners) {
+    removeModalViewportListeners();
   }
 }
 
@@ -276,7 +280,7 @@ function openInstallationModal() {
     installModal.setAttribute('aria-hidden', 'false');
     document.body.classList.add('modal-open');
     adjustInstallationModalPosition();
-    ensureModalResizeListener();
+    ensureModalViewportListeners();
 
     if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
       window.requestAnimationFrame(adjustInstallationModalPosition);
@@ -307,7 +311,7 @@ function closeInstallationModal() {
   installModal.classList.remove('modal--visible');
   installModal.setAttribute('aria-hidden', 'true');
   document.body.classList.remove('modal-open');
-  teardownModalResizeListener();
+  teardownModalViewportListeners();
 
   if (installHelpButton) {
     installHelpButton.focus();

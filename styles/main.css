@@ -343,6 +343,7 @@ main {
   place-items: center;
   opacity: 0;
   pointer-events: none;
+  visibility: hidden;
   transition: opacity 0.2s ease;
   z-index: 20;
 }
@@ -350,6 +351,7 @@ main {
 .modal--visible {
   opacity: 1;
   pointer-events: auto;
+  visibility: visible;
 }
 
 .modal__overlay {

@@ -42,6 +42,7 @@ let playersFallbackPollingId = null;
 let playersStage = null;
 
 const STATUS_FALLBACK_INTERVAL_MS = 30000;
+const MODAL_TRANSITION_MS = 200;
 
 const defaultButtonLabels = new Map();
 
@@ -150,13 +151,24 @@ function openInstallationModal() {
     return;
   }
 
-  installModal.classList.add('modal--visible');
-  installModal.setAttribute('aria-hidden', 'false');
-  document.body.classList.add('modal-open');
+  installModal.removeAttribute('hidden');
 
-  if (installModalCloseButton) {
-    installModalCloseButton.focus();
+  const presentModal = () => {
+    installModal.classList.add('modal--visible');
+    installModal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('modal-open');
+
+    if (installModalCloseButton) {
+      installModalCloseButton.focus();
+    }
+  };
+
+  if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+    window.requestAnimationFrame(presentModal);
+    return;
   }
+
+  presentModal();
 }
 
 function closeInstallationModal() {
@@ -171,6 +183,31 @@ function closeInstallationModal() {
   if (installHelpButton) {
     installHelpButton.focus();
   }
+
+  const prefersReducedMotion =
+    typeof window !== 'undefined' &&
+    window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const hideModal = () => {
+    installModal.setAttribute('hidden', '');
+  };
+
+  if (prefersReducedMotion) {
+    hideModal();
+    return;
+  }
+
+  const scheduleHide =
+    typeof window !== 'undefined' && typeof window.setTimeout === 'function'
+      ? window.setTimeout.bind(window)
+      : setTimeout;
+
+  scheduleHide(() => {
+    if (!installModal.classList.contains('modal--visible')) {
+      hideModal();
+    }
+  }, MODAL_TRANSITION_MS);
 }
 
 function cacheDefaultButtonLabels() {

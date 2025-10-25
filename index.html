@@ -20,13 +20,23 @@
           STATUS: UNKNOWN
         </button>
         <button
+          class="header-controls__help-button"
+          type="button"
+          data-role="install-help-button"
+          aria-haspopup="dialog"
+          aria-expanded="false"
+          aria-controls="installModal"
+        >
+          Need help?
+        </button>
+        <button
           class="locale-toggle"
           type="button"
           data-role="locale-toggle"
           aria-label="Switch to Spanish"
           title="Switch to Spanish"
         >
-          EN
+          Language: EN
         </button>
       </div>
     </header>
@@ -37,16 +47,6 @@
           <h1 id="mainTitle" class="control-card__title" data-role="main-title">
             Lianes8 Server
           </h1>
-          <button
-            class="control-card__help-button"
-            type="button"
-            data-role="install-help-button"
-            aria-haspopup="dialog"
-            aria-expanded="false"
-            aria-controls="installModal"
-          >
-            Need help?
-          </button>
         </div>
 
         <div class="torch-container">

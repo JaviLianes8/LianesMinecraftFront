@@ -164,7 +164,9 @@ function updateLocaleToggleLabel() {
   const nextLocale = locale === 'es' ? 'en' : 'es';
   const labelKey = `ui.localeToggle.switchTo.${nextLocale}`;
   const label = t(labelKey);
-  localeToggleButton.textContent = locale.toUpperCase();
+  const buttonLabelKey = `ui.localeToggle.buttonLabel.${locale}`;
+  const buttonLabel = t(buttonLabelKey);
+  localeToggleButton.textContent = buttonLabel;
   localeToggleButton.setAttribute('data-locale', locale);
   localeToggleButton.setAttribute('aria-pressed', locale === 'es' ? 'true' : 'false');
   localeToggleButton.setAttribute('aria-label', label);

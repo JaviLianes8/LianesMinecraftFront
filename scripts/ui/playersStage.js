@@ -14,6 +14,7 @@ const PLAYER_SKINS = new Map([
   ['pozofer11', drawPandaSkin],
   ['bruyan', drawDeadpoolSkin],
   ['wladymir14', drawPeakyBlindersSkin],
+  ['alexethe', drawSharpshooterPoopSkin],
 ]);
 
 /**
@@ -438,6 +439,48 @@ function drawPeakyBlindersSkin(ctx, x, y, scale) {
   paint(6, 12, 3, 4, trousers);
   paint(3, 15, 3, 1, shoes);
   paint(6, 15, 3, 1, shoes);
+}
+
+function drawSharpshooterPoopSkin(ctx, x, y, scale) {
+  const paint = createPixelPainter(ctx, x, y, scale);
+
+  const swirlLight = '#d97706';
+  const swirlDark = '#b45309';
+  const outline = '#78350f';
+  const eyes = '#fef3c7';
+  const pupil = '#111827';
+  const rifleBody = '#374151';
+  const rifleBarrel = '#1f2937';
+  const rifleScope = '#9ca3af';
+  const glove = '#92400e';
+
+  paint(4, 0, 4, 1, outline);
+  paint(3, 1, 6, 1, outline);
+  paint(2, 2, 8, 1, outline);
+  paint(3, 3, 6, 1, swirlDark);
+  paint(2, 4, 8, 1, swirlLight);
+  paint(3, 5, 6, 1, swirlDark);
+  paint(4, 6, 4, 1, swirlLight);
+  paint(5, 7, 2, 1, swirlDark);
+
+  paint(3, 8, 1, 1, outline);
+  paint(8, 8, 1, 1, outline);
+  paint(4, 8, 1, 1, eyes);
+  paint(7, 8, 1, 1, eyes);
+  paint(4, 9, 1, 1, pupil);
+  paint(7, 9, 1, 1, pupil);
+
+  paint(2, 10, 8, 2, swirlLight);
+  paint(2, 12, 8, 2, swirlDark);
+  paint(3, 14, 6, 1, swirlLight);
+  paint(3, 15, 6, 1, outline);
+
+  paint(0, 11, 5, 1, rifleBarrel);
+  paint(0, 12, 4, 1, rifleBarrel);
+  paint(5, 11, 4, 1, rifleBody);
+  paint(4, 11, 1, 2, glove);
+  paint(7, 10, 3, 1, rifleScope);
+  paint(8, 9, 3, 1, rifleBarrel);
 }
 
 function createPixelPainter(ctx, x, y, scale) {

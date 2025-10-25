@@ -388,7 +388,9 @@ main {
 .modal {
   position: fixed;
   inset: 0;
-  display: block;
+  display: grid;
+  place-items: center;
+  padding: 24px;
   opacity: 0;
   pointer-events: none;
   visibility: hidden;
@@ -410,21 +412,19 @@ main {
 }
 
 .modal__content {
-  position: absolute;
-  left: 50%;
-  top: clamp(24px, 12vh, 120px);
-  transform: translateX(-50%);
+  position: relative;
   background: #141821;
   border: 1px solid rgba(160, 207, 255, 0.22);
   border-radius: 18px;
-  padding: 20px 20px 18px;
-  width: min(340px, 88vw);
+  padding: 24px 24px 22px;
+  width: min(420px, 90vw);
   box-shadow: var(--shadow);
   display: grid;
-  gap: 16px;
+  gap: 18px;
   z-index: 1;
-  max-height: min(460px, calc(100vh - 72px));
+  max-height: min(540px, 90vh);
   overflow-y: auto;
+  box-sizing: border-box;
 }
 
 .modal__close {

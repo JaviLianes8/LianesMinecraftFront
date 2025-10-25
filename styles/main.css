@@ -20,25 +20,13 @@ body {
 
 body {
   min-height: 100vh;
-}
-
-.viewport {
-  width: 100%;
-  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: clamp(24px, 6vw, 48px) clamp(16px, 5vw, 32px);
-  box-sizing: border-box;
-  gap: clamp(18px, 5vw, 36px);
 }
 
 header,
 footer {
-  width: 100%;
-  max-width: 860px;
-  padding: 0 clamp(12px, 3vw, 20px);
+  padding: 16px 20px;
   box-sizing: border-box;
 }
 
@@ -50,6 +38,7 @@ header {
 
 footer {
   text-align: center;
+  margin-top: auto;
 }
 
 .header-controls {
@@ -149,21 +138,23 @@ footer {
 }
 
 main {
-  width: 100%;
-  max-width: 860px;
+  flex: 1;
   display: flex;
   justify-content: center;
+  align-items: flex-start;
+  padding: clamp(8px, 2vw, 18px) 16px clamp(18px, 3vw, 28px);
+  box-sizing: border-box;
 }
 
 .control-card {
-  width: clamp(280px, 88vw, 820px);
+  width: clamp(280px, 90vw, 820px);
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 18px;
-  padding: clamp(18px, 5vw, 24px);
+  padding: clamp(18px, 4vw, 24px);
   box-shadow: var(--shadow);
   display: grid;
-  gap: clamp(16px, 4.5vw, 24px);
+  gap: clamp(14px, 4vw, 22px);
   align-items: center;
   justify-items: center;
   position: relative;
@@ -265,7 +256,7 @@ main {
 .torch {
   position: relative;
   z-index: 1;
-  width: min(200px, 40vw);
+  width: min(180px, 38vw);
   filter: drop-shadow(0 12px 22px rgba(0, 0, 0, 0.6));
   transition: filter 0.2s ease;
 }
@@ -602,12 +593,18 @@ footer {
 
 @media (max-width: 640px) {
   header {
-    padding-bottom: 64px;
+    padding: 12px 16px 8px;
   }
 
-  .status-button {
-    position: static;
-    display: block;
-    margin: 0 auto;
+  .header-controls {
+    gap: 8px;
+  }
+
+  main {
+    padding: 8px 12px 20px;
+  }
+
+  .control-card {
+    gap: 16px;
   }
 }

@@ -44,6 +44,7 @@ let playersStage = null;
 
 const STATUS_FALLBACK_INTERVAL_MS = 30000;
 const MODAL_TRANSITION_MS = 200;
+const MODAL_HORIZONTAL_OFFSET_PX = 24;
 
 const defaultButtonLabels = new Map();
 
@@ -232,6 +233,8 @@ function positionModalNearTorch() {
   }
 
   installModalContent.style.removeProperty('--modal-anchored-top');
+  installModalContent.style.removeProperty('--modal-anchored-left');
+  installModalContent.style.removeProperty('--modal-anchored-translate-x');
 
   if (typeof window === 'undefined') {
     return;
@@ -240,8 +243,9 @@ function positionModalNearTorch() {
   const torchBounds = torchSvg.getBoundingClientRect();
   const modalBounds = installModalContent.getBoundingClientRect();
   const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+  const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
 
-  if (!torchBounds || !modalBounds || !viewportHeight) {
+  if (!torchBounds || !modalBounds || !viewportHeight || !viewportWidth) {
     return;
   }
 
@@ -255,6 +259,16 @@ function positionModalNearTorch() {
     desiredTop = Math.min(Math.max(desiredTop, minimumOffset), maximumOffset);
     installModalContent.style.setProperty('--modal-anchored-top', `${desiredTop}px`);
   }
+
+  const minimumLeft = minimumOffset;
+  const maximumLeft = Math.max(minimumLeft, viewportWidth - modalBounds.width - minimumOffset);
+  let desiredLeft = torchBounds.right + MODAL_HORIZONTAL_OFFSET_PX;
+
+  if (Number.isFinite(desiredLeft)) {
+    desiredLeft = Math.min(Math.max(desiredLeft, minimumLeft), maximumLeft);
+    installModalContent.style.setProperty('--modal-anchored-left', `${desiredLeft}px`);
+    installModalContent.style.setProperty('--modal-anchored-translate-x', '0');
+  }
 }
 
 function resetModalAnchoring() {
@@ -263,6 +277,8 @@ function resetModalAnchoring() {
   }
 
   installModalContent.style.removeProperty('--modal-anchored-top');
+  installModalContent.style.removeProperty('--modal-anchored-left');
+  installModalContent.style.removeProperty('--modal-anchored-translate-x');
 }
 
 function cacheDefaultButtonLabels() {

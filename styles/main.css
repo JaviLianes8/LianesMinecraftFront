@@ -299,9 +299,10 @@ main {
   display: flex;
   align-items: center;
   gap: 16px;
-  justify-content: flex-start;
+  justify-content: center;
   flex-wrap: wrap;
   font-size: 14px;
+  text-align: center;
 }
 
 .downloads a {
@@ -311,7 +312,7 @@ main {
 }
 
 .downloads__help {
-  margin-left: auto;
+  margin-left: 0;
   padding: 9px 16px;
   border-radius: 12px;
   border: 1px solid rgba(160, 207, 255, 0.3);
@@ -362,8 +363,8 @@ main {
 
 .modal__content {
   position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  left: var(--modal-anchored-left, 50%);
+  transform: translate(var(--modal-anchored-translate-x, -50%), 0);
   top: var(--modal-anchored-top, 72px);
   background: #141821;
   border: 1px solid rgba(160, 207, 255, 0.22);

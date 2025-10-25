@@ -14,7 +14,7 @@ const PLAYER_SKINS = new Map([
   ['pozofer11', drawPandaSkin],
   ['bruyan', drawDeadpoolSkin],
   ['wladymir14', drawPeakyBlindersSkin],
-  ['alexethe', drawSharpshooterPoopSkin],
+  ['alexethe', drawCsgoTerroristSkin],
 ]);
 
 /**
@@ -441,46 +441,80 @@ function drawPeakyBlindersSkin(ctx, x, y, scale) {
   paint(6, 15, 3, 1, shoes);
 }
 
-function drawSharpshooterPoopSkin(ctx, x, y, scale) {
+function drawCsgoTerroristSkin(ctx, x, y, scale) {
   const paint = createPixelPainter(ctx, x, y, scale);
 
-  const swirlLight = '#d97706';
-  const swirlDark = '#b45309';
-  const outline = '#78350f';
-  const eyes = '#fef3c7';
-  const pupil = '#111827';
-  const rifleBody = '#374151';
-  const rifleBarrel = '#1f2937';
-  const rifleScope = '#9ca3af';
-  const glove = '#92400e';
+  const scarfLight = '#f3f4f6';
+  const scarfAccent = '#b91c1c';
+  const skin = '#d6a477';
+  const skinShadow = '#c28d60';
+  const beard = '#6b3f1f';
+  const sunglasses = '#111827';
+  const sunglassesHighlight = '#374151';
+  const vest = '#4b5563';
+  const vestShadow = '#374151';
+  const shirt = '#e5e7eb';
+  const belt = '#92400e';
+  const pants = '#1f2937';
+  const pantsHighlight = '#27364b';
+  const boots = '#111827';
+  const glove = '#6b3f1f';
+  const rifleMetal = '#1f2937';
+  const rifleWood = '#8b5a2b';
+  const rifleMag = '#2f4858';
 
-  paint(4, 0, 4, 1, outline);
-  paint(3, 1, 6, 1, outline);
-  paint(2, 2, 8, 1, outline);
-  paint(3, 3, 6, 1, swirlDark);
-  paint(2, 4, 8, 1, swirlLight);
-  paint(3, 5, 6, 1, swirlDark);
-  paint(4, 6, 4, 1, swirlLight);
-  paint(5, 7, 2, 1, swirlDark);
+  paint(2, 0, 8, 1, scarfLight);
+  paint(2, 1, 8, 1, scarfAccent);
+  paint(2, 2, 8, 1, scarfLight);
 
-  paint(3, 8, 1, 1, outline);
-  paint(8, 8, 1, 1, outline);
-  paint(4, 8, 1, 1, eyes);
-  paint(7, 8, 1, 1, eyes);
-  paint(4, 9, 1, 1, pupil);
-  paint(7, 9, 1, 1, pupil);
+  paint(2, 3, 1, 3, scarfLight);
+  paint(9, 3, 1, 3, scarfLight);
+  paint(2, 4, 1, 1, scarfAccent);
+  paint(9, 4, 1, 1, scarfAccent);
 
-  paint(2, 10, 8, 2, swirlLight);
-  paint(2, 12, 8, 2, swirlDark);
-  paint(3, 14, 6, 1, swirlLight);
-  paint(3, 15, 6, 1, outline);
+  paint(3, 3, 6, 3, skin);
+  paint(3, 4, 5, 1, sunglasses);
+  paint(7, 4, 1, 1, sunglassesHighlight);
+  paint(5, 5, 2, 1, skinShadow);
+  paint(3, 6, 6, 1, beard);
+  paint(4, 6, 1, 1, skinShadow);
+  paint(7, 6, 1, 1, skinShadow);
 
-  paint(0, 11, 5, 1, rifleBarrel);
-  paint(0, 12, 4, 1, rifleBarrel);
-  paint(5, 11, 4, 1, rifleBody);
-  paint(4, 11, 1, 2, glove);
-  paint(7, 10, 3, 1, rifleScope);
-  paint(8, 9, 3, 1, rifleBarrel);
+  paint(2, 7, 8, 1, scarfLight);
+  paint(2, 7, 1, 1, scarfAccent);
+  paint(5, 7, 1, 1, scarfAccent);
+  paint(8, 7, 1, 1, scarfAccent);
+
+  paint(1, 8, 1, 3, skin);
+  paint(10, 8, 1, 3, skin);
+  paint(1, 10, 1, 1, vestShadow);
+  paint(10, 10, 1, 1, vestShadow);
+
+  paint(2, 8, 8, 3, vest);
+  paint(3, 8, 6, 1, shirt);
+  paint(2, 8, 1, 3, vestShadow);
+  paint(9, 8, 1, 3, vestShadow);
+  paint(4, 9, 1, 2, vestShadow);
+  paint(7, 9, 1, 2, vestShadow);
+
+  paint(0, 10, 6, 1, rifleMetal);
+  paint(3, 10, 3, 1, rifleWood);
+  paint(6, 10, 2, 1, rifleMetal);
+  paint(4, 10, 1, 1, glove);
+  paint(7, 10, 1, 1, glove);
+
+  paint(1, 11, 1, 1, glove);
+  paint(10, 11, 1, 1, glove);
+  paint(5, 11, 1, 1, rifleMag);
+  paint(2, 11, 8, 1, belt);
+
+  paint(2, 12, 3, 3, pants);
+  paint(7, 12, 3, 3, pants);
+  paint(3, 13, 1, 1, pantsHighlight);
+  paint(8, 13, 1, 1, pantsHighlight);
+
+  paint(2, 15, 3, 1, boots);
+  paint(7, 15, 3, 1, boots);
 }
 
 function createPixelPainter(ctx, x, y, scale) {

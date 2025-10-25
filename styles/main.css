@@ -137,12 +137,13 @@ footer {
 
 main {
   display: grid;
-  place-items: center;
-  align-content: center;
-  padding: clamp(16px, 6vh, 28px) clamp(12px, 4vw, 24px);
+  place-items: start center;
+  align-content: start;
+  padding: clamp(18px, 5vh, 44px) clamp(12px, 4vw, 24px) clamp(16px, 4vh, 28px);
   min-height: 0;
   width: 100%;
   box-sizing: border-box;
+  row-gap: clamp(12px, 3vh, 20px);
 }
 
 .control-card {
@@ -329,14 +330,8 @@ main {
 
 @media (max-height: 780px) {
   main {
-    place-items: start center;
-    align-content: start;
     padding-top: clamp(12px, 4vh, 20px);
-    padding-bottom: clamp(14px, 5vh, 22px);
-  }
-
-  .control-card {
-    margin-top: 8px;
+    padding-bottom: clamp(12px, 4vh, 20px);
   }
 }
 
@@ -634,7 +629,7 @@ footer {
 
 @media (max-width: 640px) {
   header {
-    padding-bottom: 64px;
+    padding-bottom: clamp(20px, 10vw, 32px);
   }
 
   .status-button {

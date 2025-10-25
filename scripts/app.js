@@ -428,7 +428,7 @@ function connectToPlayersStreamChannel() {
 
   const subscription = connectToPlayersStream({
     onOpen: handlePlayersStreamOpen,
-    onPlayers: handlePlayersUpdate,
+    onPlayers: (snapshot) => handlePlayersUpdate(snapshot, { source: 'stream' }),
     onError: handlePlayersStreamError,
   });
 
@@ -666,7 +666,7 @@ function requestPlayersSnapshot({ force = false } = {}) {
       if (playersSnapshotRequestId !== requestId) {
         return;
       }
-      handlePlayersUpdate(snapshot);
+      handlePlayersUpdate(snapshot, { source: 'snapshot' });
     } catch (error) {
       if (playersSnapshotRequestId !== requestId) {
         return;
@@ -839,11 +839,16 @@ function cleanupAllStreams() {
   destroyPlayersStage();
 }
 
-function handlePlayersUpdate(snapshot) {
-  stopPlayersStreamWatchdog();
+function handlePlayersUpdate(snapshot, { source = 'snapshot' } = {}) {
+  if (source === 'stream') {
+    stopPlayersStreamWatchdog();
+  }
   const players = snapshot && Array.isArray(snapshot.players) ? snapshot.players : [];
   updatePlayersStage(players);
-  stopPlayersFallbackPolling();
+  if (source === 'stream') {
+    stopPlayersFallbackPolling();
+    startPlayersStreamWatchdog();
+  }
 }
 
 function initialisePlayersStage() {

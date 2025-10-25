@@ -26,16 +26,19 @@ body {
 
 header,
 footer {
-  padding: 16px 20px;
+  padding-inline: clamp(16px, 4vw, 24px);
 }
 
 header {
+  padding-top: clamp(14px, 3vh, 18px);
+  padding-bottom: clamp(0px, 1vh, 6px);
   display: flex;
   justify-content: flex-end;
   align-items: flex-start;
 }
 
 footer {
+  padding-block: clamp(12px, 2.6vh, 18px);
   text-align: center;
 }
 
@@ -139,7 +142,7 @@ main {
   display: grid;
   place-items: start center;
   align-content: start;
-  padding: clamp(18px, 5vh, 44px) clamp(12px, 4vw, 24px) clamp(16px, 4vh, 28px);
+  padding: clamp(2px, 1.2vh, 12px) clamp(12px, 4vw, 24px) clamp(12px, 4vh, 28px);
   min-height: 0;
   width: 100%;
   box-sizing: border-box;
@@ -330,8 +333,8 @@ main {
 
 @media (max-height: 780px) {
   main {
-    padding-top: clamp(12px, 4vh, 20px);
-    padding-bottom: clamp(12px, 4vh, 20px);
+    padding-top: clamp(2px, 1.2vh, 10px);
+    padding-bottom: clamp(10px, 3vh, 18px);
   }
 }
 
@@ -342,8 +345,8 @@ main {
   }
 
   main {
-    padding-top: clamp(10px, 3vh, 16px);
-    padding-bottom: clamp(12px, 4vh, 18px);
+    padding-top: clamp(0px, 0.8vh, 8px);
+    padding-bottom: clamp(10px, 3vh, 16px);
   }
 
   .control-card {

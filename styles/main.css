@@ -128,15 +128,15 @@ header {
 main {
   display: grid;
   place-items: center;
-  padding: 30px 16px 10px;
+  padding: 24px 12px 10px;
 }
 
 .control-card {
-  width: min(980px, 92vw);
+  width: min(860px, 94vw);
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 18px;
-  padding: 26px;
+  padding: 22px;
   box-shadow: var(--shadow);
   display: grid;
   gap: 20px;
@@ -311,28 +311,35 @@ main {
   text-underline-offset: 3px;
 }
 
-.downloads__help {
-  margin-left: 0;
-  padding: 9px 16px;
-  border-radius: 12px;
-  border: 1px solid rgba(160, 207, 255, 0.3);
-  background: rgba(160, 207, 255, 0.12);
-  color: #a0cfff;
+
+.floating-help {
+  position: fixed;
+  right: clamp(12px, 4vw, 28px);
+  bottom: clamp(12px, 4vw, 28px);
+  padding: 12px 18px;
+  border-radius: 14px;
+  border: 1px solid rgba(160, 207, 255, 0.35);
+  background: rgba(160, 207, 255, 0.16);
+  color: #e6f1ff;
   font-weight: 700;
   cursor: pointer;
-  transition: transform 0.1s ease, box-shadow 0.2s ease, background 0.2s ease;
+  box-shadow: 0 10px 26px rgba(9, 12, 20, 0.45);
+  transition: transform 0.1s ease, box-shadow 0.2s ease, background 0.2s ease, opacity 0.2s ease;
+  z-index: 30;
+  max-width: calc(100vw - 24px);
+  white-space: normal;
 }
 
-.downloads__help:hover {
-  box-shadow: 0 0 0 3px rgba(160, 207, 255, 0.18) inset;
-  background: rgba(160, 207, 255, 0.18);
+.floating-help:hover {
+  background: rgba(160, 207, 255, 0.22);
+  box-shadow: 0 12px 32px rgba(9, 12, 20, 0.55);
 }
 
-.downloads__help:active {
+.floating-help:active {
   transform: translateY(1px);
 }
 
-.downloads__help:focus-visible {
+.floating-help:focus-visible {
   outline: 3px solid rgba(160, 207, 255, 0.45);
   outline-offset: 2px;
 }
@@ -363,18 +370,22 @@ main {
 
 .modal__content {
   position: absolute;
-  left: var(--modal-anchored-left, 50%);
-  transform: translate(var(--modal-anchored-translate-x, -50%), 0);
-  top: var(--modal-anchored-top, 72px);
+  right: clamp(12px, 8vw, 48px);
+  bottom: clamp(24px, 12vh, 96px);
+  left: auto;
+  top: auto;
+  transform: none;
   background: #141821;
   border: 1px solid rgba(160, 207, 255, 0.22);
   border-radius: 18px;
-  padding: 28px 24px 22px;
-  width: min(420px, 90vw);
+  padding: 24px 22px 20px;
+  width: min(360px, 90vw);
   box-shadow: var(--shadow);
   display: grid;
   gap: 18px;
   z-index: 1;
+  max-height: min(520px, calc(100vh - 96px));
+  overflow-y: auto;
 }
 
 .modal__close {
@@ -412,6 +423,11 @@ main {
 
 body.modal-open {
   overflow: hidden;
+}
+
+body.modal-open .floating-help {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .info-panel {

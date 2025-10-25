@@ -92,17 +92,10 @@
           >
             Java Runtime (Official)
           </a>
-          <button
-            class="downloads__help"
-            type="button"
-            data-role="install-help-button"
-            aria-haspopup="dialog"
-          >
-            Need help?
-          </button>
         </div>
 
         <div
+          id="installModal"
           class="modal"
           role="dialog"
           aria-modal="true"
@@ -151,6 +144,17 @@
         <p class="info-panel" data-role="info-panel" role="status" aria-live="polite"></p>
       </section>
     </main>
+
+    <button
+      class="floating-help"
+      type="button"
+      data-role="install-help-button"
+      aria-haspopup="dialog"
+      aria-expanded="false"
+      aria-controls="installModal"
+    >
+      Need help?
+    </button>
 
     <footer>Lianes8 Server</footer>
 

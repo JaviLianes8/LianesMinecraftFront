@@ -27,7 +27,6 @@ const installModalCloseButton = document.querySelector('[data-role="install-moda
 const installModalOverlay = document.querySelector('[data-role="install-modal-overlay"]');
 const installModalTitle = document.querySelector('[data-role="install-modal-title"]');
 const installModalBody = document.querySelector('[data-role="install-modal-body"]');
-const installModalContent = document.querySelector('[data-role="install-modal-content"]');
 
 let currentState = ServerLifecycleState.UNKNOWN;
 let statusEligible = false;
@@ -44,8 +43,6 @@ let playersStage = null;
 
 const STATUS_FALLBACK_INTERVAL_MS = 30000;
 const MODAL_TRANSITION_MS = 200;
-const MODAL_HORIZONTAL_OFFSET_PX = 24;
-
 const defaultButtonLabels = new Map();
 
 initialise();
@@ -129,6 +126,10 @@ function prepareInstallationModal() {
     return;
   }
 
+  if (!installHelpButton.hasAttribute('aria-expanded')) {
+    installHelpButton.setAttribute('aria-expanded', 'false');
+  }
+
   installHelpButton.addEventListener('click', openInstallationModal);
 
   if (installModalCloseButton) {
@@ -141,9 +142,6 @@ function prepareInstallationModal() {
 
   document.addEventListener('keydown', handleModalKeydown);
 
-  if (typeof window !== 'undefined') {
-    window.addEventListener('resize', handleModalViewportChange);
-  }
 }
 
 function handleModalKeydown(event) {
@@ -157,9 +155,11 @@ function openInstallationModal() {
     return;
   }
 
-  installModal.removeAttribute('hidden');
+  if (installHelpButton) {
+    installHelpButton.setAttribute('aria-expanded', 'true');
+  }
 
-  positionModalNearTorch();
+  installModal.removeAttribute('hidden');
 
   const presentModal = () => {
     installModal.classList.add('modal--visible');
@@ -184,10 +184,13 @@ function closeInstallationModal() {
     return;
   }
 
+  if (installHelpButton) {
+    installHelpButton.setAttribute('aria-expanded', 'false');
+  }
+
   installModal.classList.remove('modal--visible');
   installModal.setAttribute('aria-hidden', 'true');
   document.body.classList.remove('modal-open');
-  resetModalAnchoring();
 
   if (installHelpButton) {
     installHelpButton.focus();
@@ -217,68 +220,6 @@ function closeInstallationModal() {
       hideModal();
     }
   }, MODAL_TRANSITION_MS);
-}
-
-function handleModalViewportChange() {
-  if (!installModal?.classList.contains('modal--visible')) {
-    return;
-  }
-
-  positionModalNearTorch();
-}
-
-function positionModalNearTorch() {
-  if (!installModalContent || !torchSvg) {
-    return;
-  }
-
-  installModalContent.style.removeProperty('--modal-anchored-top');
-  installModalContent.style.removeProperty('--modal-anchored-left');
-  installModalContent.style.removeProperty('--modal-anchored-translate-x');
-
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  const torchBounds = torchSvg.getBoundingClientRect();
-  const modalBounds = installModalContent.getBoundingClientRect();
-  const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
-  const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
-
-  if (!torchBounds || !modalBounds || !viewportHeight || !viewportWidth) {
-    return;
-  }
-
-  const torchMidpoint = torchBounds.top + torchBounds.height / 2;
-  let desiredTop = torchMidpoint - modalBounds.height / 2;
-
-  const minimumOffset = 16;
-  const maximumOffset = Math.max(minimumOffset, viewportHeight - modalBounds.height - minimumOffset);
-
-  if (Number.isFinite(desiredTop)) {
-    desiredTop = Math.min(Math.max(desiredTop, minimumOffset), maximumOffset);
-    installModalContent.style.setProperty('--modal-anchored-top', `${desiredTop}px`);
-  }
-
-  const minimumLeft = minimumOffset;
-  const maximumLeft = Math.max(minimumLeft, viewportWidth - modalBounds.width - minimumOffset);
-  let desiredLeft = torchBounds.right + MODAL_HORIZONTAL_OFFSET_PX;
-
-  if (Number.isFinite(desiredLeft)) {
-    desiredLeft = Math.min(Math.max(desiredLeft, minimumLeft), maximumLeft);
-    installModalContent.style.setProperty('--modal-anchored-left', `${desiredLeft}px`);
-    installModalContent.style.setProperty('--modal-anchored-translate-x', '0');
-  }
-}
-
-function resetModalAnchoring() {
-  if (!installModalContent) {
-    return;
-  }
-
-  installModalContent.style.removeProperty('--modal-anchored-top');
-  installModalContent.style.removeProperty('--modal-anchored-left');
-  installModalContent.style.removeProperty('--modal-anchored-translate-x');
 }
 
 function cacheDefaultButtonLabels() {

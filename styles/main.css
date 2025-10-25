@@ -504,11 +504,7 @@ body.modal-open .header-controls__help-button {
   gap: 10px;
   padding: 12px 18px;
   border-radius: 14px;
-  border: 1px solid rgba(160, 207, 255, 0.1);
-  background: rgba(255, 255, 255, 0.08);
-  transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease,
-    transform 0.2s ease, opacity 0.2s ease;
-  box-shadow: var(--shadow);
+  transition: color 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
   position: relative;
   z-index: 1;
   width: min(420px, calc(100vw - 48px));
@@ -548,8 +544,6 @@ body.modal-open .header-controls__help-button {
 
 .info-panel[data-state='pending'] {
   color: #a0cfff;
-  background: rgba(160, 207, 255, 0.12);
-  border-color: rgba(160, 207, 255, 0.3);
 }
 
 .info-panel[data-state='pending']::before {
@@ -558,8 +552,6 @@ body.modal-open .header-controls__help-button {
 
 .info-panel[data-state='success'] {
   color: var(--ok);
-  background: rgba(35, 209, 139, 0.12);
-  border-color: rgba(35, 209, 139, 0.28);
 }
 
 .info-panel[data-state='success']::after {
@@ -575,8 +567,6 @@ body.modal-open .header-controls__help-button {
 
 .info-panel[data-state='error'] {
   color: var(--bad);
-  background: rgba(255, 77, 77, 0.12);
-  border-color: rgba(255, 77, 77, 0.3);
 }
 
 .info-panel[data-state='error']::after {

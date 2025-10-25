@@ -24,12 +24,12 @@ const MESSAGES = {
     'ui.downloads.mods': 'Mods del cliente',
     'ui.downloads.neoforge': 'NeoForge',
     'ui.downloads.minecraft': 'Minecraft (Sitio oficial)',
-    'ui.downloads.java': 'Java Runtime (Official site)',
+    'ui.downloads.java': 'Java Runtime (Sitio oficial)',
     'ui.downloads.help': '¿Necesitas ayuda?',
     'ui.localeToggle.buttonLabel.es': 'Idioma: ES',
     'ui.localeToggle.switchTo.en': 'Cambiar a inglés',
     'ui.localeToggle.switchTo.es': 'Cambiar a español',
-    'ui.installation.popup.title': 'Installation checklist',
+    'ui.installation.popup.title': 'Lista de verificación de instalación',
     'ui.installation.popup.body': `
       <section class="modal-section">
         <h3>Mods</h3>

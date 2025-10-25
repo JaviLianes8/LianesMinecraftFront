@@ -23,29 +23,39 @@ const MESSAGES = {
     'ui.downloads.label': 'Descargas:',
     'ui.downloads.mods': 'Mods del cliente',
     'ui.downloads.neoforge': 'NeoForge',
-    'ui.downloads.java': 'Java Runtime (Official site)',
+    'ui.downloads.minecraft': 'Minecraft (Sitio oficial)',
+    'ui.downloads.java': 'Java Runtime (Sitio oficial)',
     'ui.downloads.help': '¿Necesitas ayuda?',
     'ui.localeToggle.buttonLabel.es': 'Idioma: ES',
     'ui.localeToggle.switchTo.en': 'Cambiar a inglés',
     'ui.localeToggle.switchTo.es': 'Cambiar a español',
-    'ui.installation.popup.title': 'Installation checklist',
+    'ui.installation.popup.title': 'Lista de verificación de instalación',
     'ui.installation.popup.body': `
       <section class="modal-section">
         <h3>Mods</h3>
         <p>
-          Copy the extracted <em>Client Mods</em> files into <code>%appdata%/.minecraft/mods</code> and restart Minecraft.
+          Copia los archivos extraídos de <em>Mods del cliente</em> en <code>%appdata%/.minecraft/mods</code> y reinicia Minecraft.
         </p>
       </section>
       <section class="modal-section">
         <h3>NeoForge</h3>
         <p>
-          Launch the NeoForge installer, pick the <strong>Client</strong> option, verify the <code>.minecraft</code> path, and confirm to finish the installation.
+          Ejecuta el instalador de NeoForge, elige la opción <strong>Cliente</strong>, verifica la ruta de <code>.minecraft</code> y confirma para completar la instalación.
         </p>
       </section>
       <section class="modal-section">
         <h3>Java</h3>
         <p>
-          Download the latest Java Runtime from the official website and follow the setup wizard. Restart your computer if the installer requests it.
+          Descarga la versión más reciente de Java Runtime desde el sitio oficial y sigue el asistente de instalación. Reinicia el equipo si el instalador lo solicita.
+        </p>
+      </section>
+      <section class="modal-section">
+        <h3>Minecraft</h3>
+        <p>
+          Instala el lanzador oficial de Minecraft desde la página de descargas de Minecraft.net para mantener el juego actualizado.
+        </p>
+        <p>
+          Descarga oficial: <a href="https://www.minecraft.net/en-us/download" target="_blank" rel="noopener noreferrer">minecraft.net/en-us/download</a>
         </p>
       </section>
     `,
@@ -102,6 +112,7 @@ const MESSAGES = {
     'ui.downloads.label': 'Downloads:',
     'ui.downloads.mods': 'Client Mods',
     'ui.downloads.neoforge': 'NeoForge',
+    'ui.downloads.minecraft': 'Minecraft (Official)',
     'ui.downloads.java': 'Java Runtime (Official site)',
     'ui.downloads.help': 'Need help?',
     'ui.localeToggle.buttonLabel.en': 'Language: EN',
@@ -125,6 +136,15 @@ const MESSAGES = {
         <h3>Java</h3>
         <p>
           Download the latest Java Runtime from the official website and follow the setup wizard. Restart your computer if the installer requests it.
+        </p>
+      </section>
+      <section class="modal-section">
+        <h3>Minecraft</h3>
+        <p>
+          Install the official Minecraft Launcher from the Minecraft.net download page to keep the game fully updated.
+        </p>
+        <p>
+          Official download: <a href="https://www.minecraft.net/en-us/download" target="_blank" rel="noopener noreferrer">minecraft.net/en-us/download</a>
         </p>
       </section>
     `,

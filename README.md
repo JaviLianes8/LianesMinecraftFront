@@ -33,20 +33,20 @@ The dashboard requires two passwords: one to unlock the interface and another to
 
 ### Vercel deployment
 1. Open the project in the Vercel dashboard and navigate to **Settings → Environment Variables**.
-2. Add `START_PASSWORD` with the value that should desbloquear el panel.
-3. Add `STOP_PASSWORD` with the value que debe autorizar la detención.
-4. En **Settings → Build & Development Settings**, establece **Build Command** en `npm run build` y **Output Directory** en `public`.
-5. Desencadena un nuevo despliegue para que Vercel regenere `runtime-config.js` con los secretos actualizados.
+2. Add `START_PASSWORD` with the value that must unlock the dashboard.
+3. Add `STOP_PASSWORD` with the value that must authorise the shutdown.
+4. In **Settings → Build & Development Settings**, set **Build Command** to `npm run build` and **Output Directory** to `public`.
+5. Trigger a new deployment so that Vercel regenerates `runtime-config.js` with the updated secrets.
 
-### Desarrollo local
-1. Exporta las variables de entorno antes de construir, por ejemplo:
+### Local development
+1. Export the environment variables before building, for example:
    ```bash
-   export START_PASSWORD="mi-clave-arranque"
-   export STOP_PASSWORD="mi-clave-parada"
+   export START_PASSWORD="my-startup-password"
+   export STOP_PASSWORD="my-shutdown-password"
    npm run build
    ```
-2. Sirve el directorio del proyecto con tu servidor estático favorito (por ejemplo, `npx http-server .`).
-3. Sirve el contenido generado en `public/` o el directorio raíz (ambos contienen el artefacto listo) y repite `npm run build` cada vez que cambies cualquiera de las contraseñas.
+2. Serve the project directory with your preferred static server (for example, `npx http-server .`).
+3. Serve the content generated in `public/` or the project root (both include the ready-to-ship artefact) and rerun `npm run build` whenever you change any of the passwords.
 
 ## Directory structure
 ```
@@ -76,7 +76,7 @@ The following tables summarise the responsibility of each class or exported fact
 | `core/lifecycleInfoResolver.js` | Function `resolveLifecycleInfo` | Maps backend states to informational messages (online/offline/error). |
 | `core/stopConfirmation.js` | Function `confirmStopAction` | Requests consecutive confirmations before stopping the server. |
 | `security/passwordPrompt.js` | Class `PasswordPrompt`, factory `createPasswordPrompt` | Coordinates the password dialog and caches authorised scopes. |
-| `support/passwordSecretsGateway.js` | Function `getPasswordSecrets` | Recupera los hashes y sales expuestos por `runtime-config.js`. |
+| `support/passwordSecretsGateway.js` | Function `getPasswordSecrets` | Retrieves the salted hashes and secrets exposed by `runtime-config.js`. |
 | `dom/domReferences.js` | Function `createDomReferences` | Centralises DOM queries and returns frozen references. |
 | `info/infoMessageService.js` | Factory `createInfoMessageService` | Renders and reapplies contextual panel messages, normalising descriptors. |
 | `locale/localeController.js` | Class `LocaleController` | Applies localised texts, manages the language toggle and keeps links up to date. |
@@ -93,7 +93,7 @@ The following tables summarise the responsibility of each class or exported fact
 | `server/playersService.js` | Functions `connectToPlayersStream`, `fetchPlayersSnapshot`, `normalisePlayersSnapshotPayload` | Manages player data both in streaming and snapshots. |
 | `server/lifecycle.js` | Utilities `ServerLifecycleState`, `normaliseServerStatusPayload` | Converts arbitrary texts into consistent states for the UI. |
 | `server/eventSourceSubscription.js` | Factory `createEventSourceSubscription` | Creates resilient SSE subscriptions with uniform open/close handling. |
-| `security/passwordVerifier.js` | Class `PasswordVerifier`, factory `createPasswordVerifier` | Valida contraseñas contra los hashes generados en tiempo de build. |
+| `security/passwordVerifier.js` | Class `PasswordVerifier`, factory `createPasswordVerifier` | Validates passwords against the build-time generated salted hashes. |
 
 ### HTTP layer (`scripts/http`)
 | File | Type | Responsibility |

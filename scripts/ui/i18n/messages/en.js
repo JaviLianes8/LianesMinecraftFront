@@ -30,6 +30,15 @@ export const enMessages = {
   'ui.localeToggle.buttonLabel.en': 'Language: EN',
   'ui.localeToggle.switchTo.en': 'Switch to English',
   'ui.localeToggle.switchTo.es': 'Switch to Spanish',
+  'ui.password.start.title': 'Secure access',
+  'ui.password.start.description': 'Enter the startup password to unlock the dashboard.',
+  'ui.password.stop.title': 'Confirm shutdown',
+  'ui.password.stop.description': 'Enter the shutdown password to stop the server safely.',
+  'ui.password.label': 'Password',
+  'ui.password.submit': 'Continue',
+  'ui.password.cancel': 'Cancel',
+  'ui.password.error.invalid': 'Incorrect password. Try again.',
+  'ui.password.error.generic': 'Could not verify the password. Please retry.',
   'ui.installation.popup.title': 'Installation checklist',
   'ui.installation.popup.body': `
       <section class="modal-section">

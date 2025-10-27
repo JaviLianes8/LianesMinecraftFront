@@ -18,6 +18,7 @@ export class DashboardController {
     statusCoordinator,
     playersCoordinator,
     services,
+    passwordPrompt,
   }) {
     this.dom = dom;
     this.controlPanelPresenter = controlPanelPresenter;
@@ -28,15 +29,13 @@ export class DashboardController {
     this.statusCoordinator = statusCoordinator;
     this.playersCoordinator = playersCoordinator;
     this.services = services;
+    this.passwordPrompt = passwordPrompt ?? null;
 
     this.currentState = ServerLifecycleState.UNKNOWN;
     this.currentStatusViewState = StatusViewState.UNKNOWN;
-    this.statusEligible = false;
-    this.busy = false;
-    this.hasReceivedStatusUpdate = false;
-    this.streamHasError = false;
+    this.statusEligible = this.busy = false;
+    this.hasReceivedStatusUpdate = this.streamHasError = false;
   }
-
   initialise() {
     this.localeController.applyLocaleToStaticContent();
     this.controlPanelPresenter.cacheDefaultButtonLabels();
@@ -50,6 +49,7 @@ export class DashboardController {
       this.applyStatusView(this.currentStatusViewState);
       this.infoMessageService.refresh();
       this.updateControlAvailability();
+      this.passwordPrompt?.refreshActiveTexts();
     });
     this.infoMessageService.render({ key: 'info.stream.connecting', state: InfoViewState.PENDING });
     this.updateControlAvailability();
@@ -73,7 +73,6 @@ export class DashboardController {
       this.infoMessageService.render({ key: 'info.start.requireOffline', state: InfoViewState.ERROR });
       return;
     }
-
     await this.executeControlAction(async () => this.services.startServer(), {
       pending: 'info.start.pending',
       success: 'info.start.success',
@@ -87,7 +86,7 @@ export class DashboardController {
       this.infoMessageService.render({ key: 'info.stop.requireOnline', state: InfoViewState.ERROR });
       return;
     }
-    if (!confirmStopAction()) {
+    if (!confirmStopAction() || (await this.passwordPrompt?.ensureStopAccess?.()) === false) {
       return;
     }
     await this.executeControlAction(async () => this.services.stopServer(), {
@@ -101,7 +100,6 @@ export class DashboardController {
   async executeControlAction(action, messageKeys, options = {}) {
     this.setBusy(true, StatusViewState.PROCESSING);
     this.infoMessageService.render({ key: messageKeys.pending, state: InfoViewState.PENDING });
-
     const { sourceButton, busyLabelKey } = options;
     const restoreButtonState = sourceButton
       ? this.controlPanelPresenter.setControlButtonBusy(sourceButton, busyLabelKey)
@@ -191,9 +189,12 @@ export class DashboardController {
     this.playersStageController.update(players);
   }
   handlePlayersStreamError() {
-    this.playersCoordinator.startFallbackPolling(); this.playersCoordinator.requestSnapshot();
+    this.playersCoordinator.startFallbackPolling();
+    this.playersCoordinator.requestSnapshot();
   }
   cleanup() {
-    this.statusCoordinator.cleanup(); this.playersCoordinator.cleanup(); this.playersStageController.destroy();
+    this.statusCoordinator.cleanup();
+    this.playersCoordinator.cleanup();
+    this.playersStageController.destroy();
   }
 }

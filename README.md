@@ -28,6 +28,26 @@ The project follows Clean Architecture principles. Domain logic lives inside ser
 3. Open `http://localhost:8080` (or your chosen port) in the browser.
 4. Adjust the `REMOTE_API_BASE_URL` variable in `scripts/config.js` if your backend is hosted elsewhere.
 
+## Password configuration
+The dashboard requires two passwords: one to unlock the interface and another to stop the server. Both values are injected at build time so they never appear as plain text in the client bundle. A build step generates `runtime-config.js`, which stores salted hashes that the browser uses to validate the inputs.
+
+### Vercel deployment
+1. Open the project in the Vercel dashboard and navigate to **Settings → Environment Variables**.
+2. Add `START_PASSWORD` with the value that must unlock the dashboard.
+3. Add `STOP_PASSWORD` with the value that must authorise the shutdown.
+4. In **Settings → Build & Development Settings**, set **Build Command** to `npm run build` and **Output Directory** to `public`.
+5. Trigger a new deployment so that Vercel regenerates `runtime-config.js` with the updated secrets.
+
+### Local development
+1. Export the environment variables before building, for example:
+   ```bash
+   export START_PASSWORD="my-startup-password"
+   export STOP_PASSWORD="my-shutdown-password"
+   npm run build
+   ```
+2. Serve the project directory with your preferred static server (for example, `npx http-server .`).
+3. Serve the content generated in `public/` or the project root (both include the ready-to-ship artefact) and rerun `npm run build` whenever you change any of the passwords.
+
 ## Directory structure
 ```
 .
@@ -49,12 +69,14 @@ The following tables summarise the responsibility of each class or exported fact
 ### Application layer (`scripts/app`)
 | File | Type | Responsibility |
 | --- | --- | --- |
-| `dashboardApp.js` | Factory `createDashboardApp` | Connects DOM, presenters and coordinators to deliver a ready-to-initialise `DashboardController`. |
+| `dashboardApp.js` | Factory `createDashboardApp` | Connects DOM, presenters and coordinators and requests the startup password before initialising `DashboardController`. |
 | `control/controlPanelPresenter.js` | Class `ControlPanelPresenter` | Manages control buttons, tooltips, state indicators and accessible loading states. |
 | `core/dashboardController.js` | Class `DashboardController` | Main orchestrator: initialises the UI, processes user actions, synchronises status/player flows and updates contextual messages. |
 | `core/errorDescriptor.js` | Function `describeError` | Converts technical errors into descriptors ready for i18n. |
 | `core/lifecycleInfoResolver.js` | Function `resolveLifecycleInfo` | Maps backend states to informational messages (online/offline/error). |
 | `core/stopConfirmation.js` | Function `confirmStopAction` | Requests consecutive confirmations before stopping the server. |
+| `security/passwordPrompt.js` | Class `PasswordPrompt`, factory `createPasswordPrompt` | Coordinates the password dialog and caches authorised scopes. |
+| `support/passwordSecretsGateway.js` | Function `getPasswordSecrets` | Retrieves the salted hashes and secrets exposed by `runtime-config.js`. |
 | `dom/domReferences.js` | Function `createDomReferences` | Centralises DOM queries and returns frozen references. |
 | `info/infoMessageService.js` | Factory `createInfoMessageService` | Renders and reapplies contextual panel messages, normalising descriptors. |
 | `locale/localeController.js` | Class `LocaleController` | Applies localised texts, manages the language toggle and keeps links up to date. |
@@ -71,6 +93,7 @@ The following tables summarise the responsibility of each class or exported fact
 | `server/playersService.js` | Functions `connectToPlayersStream`, `fetchPlayersSnapshot`, `normalisePlayersSnapshotPayload` | Manages player data both in streaming and snapshots. |
 | `server/lifecycle.js` | Utilities `ServerLifecycleState`, `normaliseServerStatusPayload` | Converts arbitrary texts into consistent states for the UI. |
 | `server/eventSourceSubscription.js` | Factory `createEventSourceSubscription` | Creates resilient SSE subscriptions with uniform open/close handling. |
+| `security/passwordVerifier.js` | Class `PasswordVerifier`, factory `createPasswordVerifier` | Validates passwords against the build-time generated salted hashes. |
 
 ### HTTP layer (`scripts/http`)
 | File | Type | Responsibility |
@@ -111,7 +134,7 @@ The following tables summarise the responsibility of each class or exported fact
 | `rendering/skins/*.js` | Functions `drawXxxSkin` | Pixel-art renderers per player; `index.js` selects the correct skin. |
 
 ## Workflow
-1. **Initialisation:** `createDashboardApp` assembles controllers and starts `DashboardController.initialise()`.
+1. **Initialisation:** `createDashboardApp` requests the startup password before wiring the controllers and starting `DashboardController.initialise()`.
 2. **Connectivity:** `statusCoordinator` and `playersCoordinator` open SSE connections and fall back to polling through `requestSnapshot()` when required.
 3. **User interaction:** Buttons delegate to `DashboardController`, which coordinates HTTP actions (`serverControl`) and updates the view (`ControlPanelPresenter`, `renderInfo`).
 4. **Internationalisation:** `LocaleController` applies translated texts and switches languages using the `i18n` API.

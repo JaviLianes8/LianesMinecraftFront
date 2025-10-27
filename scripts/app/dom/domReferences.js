@@ -24,6 +24,15 @@ export function createDomReferences() {
   const downloadsLabel = document.querySelector('[data-role="downloads-label"]');
   const modsLink = document.querySelector('[data-role="download-mods"]');
   const neoforgeLink = document.querySelector('[data-role="download-neoforge"]');
+  const passwordOverlay = document.querySelector('[data-role="password-overlay"]');
+  const passwordForm = document.querySelector('[data-role="password-form"]');
+  const passwordInput = document.querySelector('[data-role="password-input"]');
+  const passwordError = document.querySelector('[data-role="password-error"]');
+  const passwordTitle = document.querySelector('[data-role="password-title"]');
+  const passwordDescription = document.querySelector('[data-role="password-description"]');
+  const passwordLabel = document.querySelector('[data-role="password-label"]');
+  const passwordSubmit = document.querySelector('[data-role="password-submit"]');
+  const passwordCancel = document.querySelector('[data-role="password-cancel"]');
 
   return Object.freeze({
     statusButton,
@@ -46,5 +55,14 @@ export function createDomReferences() {
     downloadsLabel,
     modsLink,
     neoforgeLink,
+    passwordOverlay,
+    passwordForm,
+    passwordInput,
+    passwordError,
+    passwordTitle,
+    passwordDescription,
+    passwordLabel,
+    passwordSubmit,
+    passwordCancel,
   });
 }

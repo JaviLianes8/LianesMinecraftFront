@@ -30,6 +30,15 @@ export const esMessages = {
   'ui.localeToggle.buttonLabel.es': 'Idioma: ES',
   'ui.localeToggle.switchTo.en': 'Cambiar a inglés',
   'ui.localeToggle.switchTo.es': 'Cambiar a español',
+  'ui.password.start.title': 'Acceso seguro',
+  'ui.password.start.description': 'Introduce la contraseña de arranque para desbloquear el panel de control.',
+  'ui.password.stop.title': 'Confirmar apagado',
+  'ui.password.stop.description': 'Introduce la contraseña de parada para detener el servidor con seguridad.',
+  'ui.password.label': 'Contraseña',
+  'ui.password.submit': 'Continuar',
+  'ui.password.cancel': 'Cancelar',
+  'ui.password.error.invalid': 'Contraseña incorrecta. Inténtalo de nuevo.',
+  'ui.password.error.generic': 'No se pudo verificar la contraseña. Vuelve a intentarlo.',
   'ui.installation.popup.title': 'Lista de verificación de instalación',
   'ui.installation.popup.body': `
       <section class="modal-section">

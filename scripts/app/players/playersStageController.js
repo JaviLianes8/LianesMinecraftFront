@@ -1,4 +1,4 @@
-import { createPlayersStage } from '../../ui/playersStage.js';
+import { createPlayersStage } from '../../ui/playersStage/stageFactory.js';
 
 /**
  * Handles lifecycle of the players stage UI widget.

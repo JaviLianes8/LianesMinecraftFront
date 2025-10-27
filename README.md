@@ -29,20 +29,24 @@ The project follows Clean Architecture principles. Domain logic lives inside ser
 4. Adjust the `REMOTE_API_BASE_URL` variable in `scripts/config.js` if your backend is hosted elsewhere.
 
 ## Password configuration
-The dashboard requires two passwords: one to unlock the interface and another to stop the server. Both values are provided throu
-gh environment variables so they never ship in the client bundle.
+The dashboard requires two passwords: one to unlock the interface and another to stop the server. Both values are injected at build time so they never appear as plain text in the client bundle. A build step generates `runtime-config.js`, which stores salted hashes that the browser uses to validate the inputs.
 
 ### Vercel deployment
-1. Open your project in the Vercel dashboard and navigate to **Settings → Environment Variables**.
-2. Add `START_PASSWORD` with the value that should unlock the panel.
-3. Add `STOP_PASSWORD` with the value that should authorise shutdown requests.
-4. Redeploy the project (or trigger a new build) so the serverless function can read the new secrets.
+1. Open the project in the Vercel dashboard and navigate to **Settings → Environment Variables**.
+2. Add `START_PASSWORD` with the value that should desbloquear el panel.
+3. Add `STOP_PASSWORD` with the value que debe autorizar la detención.
+4. En **Settings → Build & Development Settings**, establece **Build Command** en `npm run build` (o garantiza que se ejecute en tu flujo de despliegue).
+5. Desencadena un nuevo despliegue para que Vercel regenere `runtime-config.js` con los secretos actualizados.
 
-### Local development with `vercel dev`
-1. Run `vercel env pull .env.local` (or create `.env.local` manually) and define `START_PASSWORD` and `STOP_PASSWORD` inside it.
-2. Launch the project with `npx vercel dev` to serve both the static files and the password API locally.
-3. Visit the local URL reported by Vercel (default `http://localhost:3000`).
-4. When serving files with another tool, proxy `/api/auth` to a process that exposes the same environment variables.
+### Desarrollo local
+1. Exporta las variables de entorno antes de construir, por ejemplo:
+   ```bash
+   export START_PASSWORD="mi-clave-arranque"
+   export STOP_PASSWORD="mi-clave-parada"
+   npm run build
+   ```
+2. Sirve el directorio del proyecto con tu servidor estático favorito (por ejemplo, `npx http-server .`).
+3. Repite `npm run build` cada vez que cambies cualquiera de las contraseñas.
 
 ## Directory structure
 ```
@@ -72,6 +76,7 @@ The following tables summarise the responsibility of each class or exported fact
 | `core/lifecycleInfoResolver.js` | Function `resolveLifecycleInfo` | Maps backend states to informational messages (online/offline/error). |
 | `core/stopConfirmation.js` | Function `confirmStopAction` | Requests consecutive confirmations before stopping the server. |
 | `security/passwordPrompt.js` | Class `PasswordPrompt`, factory `createPasswordPrompt` | Coordinates the password dialog and caches authorised scopes. |
+| `support/passwordSecretsGateway.js` | Function `getPasswordSecrets` | Recupera los hashes y sales expuestos por `runtime-config.js`. |
 | `dom/domReferences.js` | Function `createDomReferences` | Centralises DOM queries and returns frozen references. |
 | `info/infoMessageService.js` | Factory `createInfoMessageService` | Renders and reapplies contextual panel messages, normalising descriptors. |
 | `locale/localeController.js` | Class `LocaleController` | Applies localised texts, manages the language toggle and keeps links up to date. |
@@ -88,7 +93,7 @@ The following tables summarise the responsibility of each class or exported fact
 | `server/playersService.js` | Functions `connectToPlayersStream`, `fetchPlayersSnapshot`, `normalisePlayersSnapshotPayload` | Manages player data both in streaming and snapshots. |
 | `server/lifecycle.js` | Utilities `ServerLifecycleState`, `normaliseServerStatusPayload` | Converts arbitrary texts into consistent states for the UI. |
 | `server/eventSourceSubscription.js` | Factory `createEventSourceSubscription` | Creates resilient SSE subscriptions with uniform open/close handling. |
-| `security/passwordAuthoriser.js` | Class `PasswordAuthoriser`, factory `createPasswordAuthoriser` | Calls the password API to verify start/stop credentials. |
+| `security/passwordVerifier.js` | Class `PasswordVerifier`, factory `createPasswordVerifier` | Valida contraseñas contra los hashes generados en tiempo de build. |
 
 ### HTTP layer (`scripts/http`)
 | File | Type | Responsibility |

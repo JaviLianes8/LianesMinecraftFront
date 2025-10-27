@@ -6,13 +6,13 @@
  * Default locale applied when no explicit preference is present.
  * @type {string}
  */
-export const DEFAULT_LOCALE = 'en';
+export const DEFAULT_LOCALE = 'es';
 
 /**
  * Locale used whenever lookups fail or an unsupported locale is requested.
  * @type {string}
  */
-export const FALLBACK_LOCALE = DEFAULT_LOCALE;
+export const FALLBACK_LOCALE = 'en';
 
 /**
  * Storage key employed to persist the user's locale preference across sessions.

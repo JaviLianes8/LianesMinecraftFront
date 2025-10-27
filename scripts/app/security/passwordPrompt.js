@@ -2,8 +2,8 @@
  * @file Coordinates password-based authorisation flows for the dashboard.
  */
 
-import { PasswordDialog } from '../../ui/passwordDialog.js';
-import { createPasswordAuthoriser } from '../../services/security/passwordAuthoriser.js';
+import { createPasswordVerifier } from './passwordVerifier.js';
+import { createPasswordDialog } from '../../ui/password/passwordDialogController.js';
 
 /**
  * High-level orchestrator managing password prompts for protected actions.
@@ -11,15 +11,15 @@ import { createPasswordAuthoriser } from '../../services/security/passwordAuthor
 export class PasswordPrompt {
   /**
    * @param {Object} options Configuration for the password prompt flow.
-   * @param {PasswordDialog} options.dialog Dialog controller responsible for UI interactions.
+   * @param {import('../../ui/password/passwordDialogController.js').PasswordDialogController} options.dialog
+   * Dialog controller responsible for UI interactions.
    * @param {(key: string) => string} options.translate Translation function resolving message keys.
-   * @param {import('../../services/security/passwordAuthoriser.js').PasswordAuthoriser} [options.authoriser]
-   * Optional custom authoriser implementation.
+   * @param {import('./passwordVerifier.js').PasswordVerifier} [options.verifier] Optional password verifier.
    */
-  constructor({ dialog, translate, authoriser = createPasswordAuthoriser() }) {
+  constructor({ dialog, translate, verifier = createPasswordVerifier() }) {
     this.dialog = dialog;
     this.translate = translate;
-    this.authoriser = authoriser;
+    this.verifier = verifier;
     this.authorisedScopes = new Set();
   }
 
@@ -29,7 +29,7 @@ export class PasswordPrompt {
    * @returns {Promise<boolean>} Resolves to true when access is granted.
    */
   async ensureStartAccess() {
-    return this.ensureScope('start');
+    return this.ensureScope('start', { remember: true });
   }
 
   /**
@@ -57,7 +57,7 @@ export class PasswordPrompt {
     this.dialog.updateTexts(this.buildTextsForScope(scope));
   }
 
-  async ensureScope(scope) {
+  async ensureScope(scope, { remember = false } = {}) {
     if (this.authorisedScopes.has(scope)) {
       return true;
     }
@@ -72,9 +72,9 @@ export class PasswordPrompt {
 
       try {
         this.dialog.setBusy(true);
-        const result = await this.authoriser.verify({ scope, password });
+        const result = await this.verifier.verify({ scope, password });
         if (result.authorised) {
-          if (scope === 'start') {
+          if (remember) {
             this.authorisedScopes.add(scope);
           }
           this.dialog.close();
@@ -108,30 +108,10 @@ export class PasswordPrompt {
  * Factory helper creating a password prompt instance using DOM references.
  *
  * @param {Object} dom DOM references required by the dialog.
- * @param {HTMLElement} dom.passwordOverlay Overlay container.
- * @param {HTMLFormElement} dom.passwordForm Password form element.
- * @param {HTMLInputElement} dom.passwordInput Password input element.
- * @param {HTMLElement} dom.passwordError Error message element.
- * @param {HTMLElement} dom.passwordTitle Dialog title element.
- * @param {HTMLElement} dom.passwordDescription Dialog description element.
- * @param {HTMLElement} dom.passwordLabel Input label element.
- * @param {HTMLButtonElement} dom.passwordSubmit Submit button element.
- * @param {HTMLButtonElement} dom.passwordCancel Cancel button element.
  * @param {(key: string) => string} translate Translation function.
  * @returns {PasswordPrompt} Configured prompt controller.
  */
 export function createPasswordPrompt(dom, translate) {
-  const dialog = new PasswordDialog({
-    overlay: dom.passwordOverlay,
-    form: dom.passwordForm,
-    input: dom.passwordInput,
-    error: dom.passwordError,
-    title: dom.passwordTitle,
-    description: dom.passwordDescription,
-    label: dom.passwordLabel,
-    submit: dom.passwordSubmit,
-    cancel: dom.passwordCancel,
-  });
-
+  const dialog = createPasswordDialog(dom);
   return new PasswordPrompt({ dialog, translate });
 }

@@ -36,7 +36,6 @@ export class DashboardController {
     this.statusEligible = this.busy = false;
     this.hasReceivedStatusUpdate = this.streamHasError = false;
   }
-
   initialise() {
     this.localeController.applyLocaleToStaticContent();
     this.controlPanelPresenter.cacheDefaultButtonLabels();
@@ -74,7 +73,6 @@ export class DashboardController {
       this.infoMessageService.render({ key: 'info.start.requireOffline', state: InfoViewState.ERROR });
       return;
     }
-
     await this.executeControlAction(async () => this.services.startServer(), {
       pending: 'info.start.pending',
       success: 'info.start.success',
@@ -102,7 +100,6 @@ export class DashboardController {
   async executeControlAction(action, messageKeys, options = {}) {
     this.setBusy(true, StatusViewState.PROCESSING);
     this.infoMessageService.render({ key: messageKeys.pending, state: InfoViewState.PENDING });
-
     const { sourceButton, busyLabelKey } = options;
     const restoreButtonState = sourceButton
       ? this.controlPanelPresenter.setControlButtonBusy(sourceButton, busyLabelKey)
@@ -192,9 +189,12 @@ export class DashboardController {
     this.playersStageController.update(players);
   }
   handlePlayersStreamError() {
-    this.playersCoordinator.startFallbackPolling(); this.playersCoordinator.requestSnapshot();
+    this.playersCoordinator.startFallbackPolling();
+    this.playersCoordinator.requestSnapshot();
   }
   cleanup() {
-    this.statusCoordinator.cleanup(); this.playersCoordinator.cleanup(); this.playersStageController.destroy();
+    this.statusCoordinator.cleanup();
+    this.playersCoordinator.cleanup();
+    this.playersStageController.destroy();
   }
 }

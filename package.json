@@ -1,0 +1,11 @@
+{
+  "name": "lianes-minecraft-front",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build/generate-runtime-config.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

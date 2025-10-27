@@ -1,12 +1,16 @@
 {
   "rewrites": [
     {
-      "source": "/api",
-      "destination": "http://naseevvee.duckdns.org:8000/api"
+      "source": "/api/server/:path*",
+      "destination": "http://naseevvee.duckdns.org:8000/api/server/:path*"
     },
     {
-      "source": "/api/:path*",
-      "destination": "http://naseevvee.duckdns.org:8000/api/:path*"
+      "source": "/api/mods/:path*",
+      "destination": "http://naseevvee.duckdns.org:8000/api/mods/:path*"
+    },
+    {
+      "source": "/api/neoforge/:path*",
+      "destination": "http://naseevvee.duckdns.org:8000/api/neoforge/:path*"
     }
   ]
 }

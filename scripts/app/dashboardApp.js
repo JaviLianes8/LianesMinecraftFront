@@ -6,6 +6,7 @@ import {
   stopServer,
   subscribeToServerStatusStream,
 } from '../services/serverService.js';
+import { verifyShutdownPassword, verifyStartupPassword } from '../services/securityService.js';
 import { translate as t } from '../ui/i18n.js';
 import { renderInfo } from '../ui/statusPresenter.js';
 import { ControlPanelPresenter } from './control/controlPanelPresenter.js';
@@ -34,7 +35,12 @@ export function createDashboardApp() {
     translate: t,
   });
 
-  const services = { startServer, stopServer };
+  const services = {
+    startServer,
+    stopServer,
+    verifyStartupPassword,
+    verifyShutdownPassword,
+  };
 
   const controller = new DashboardController({
     dom,

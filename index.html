@@ -187,7 +187,9 @@
       import { createDashboardApp } from './scripts/app/dashboardApp.js';
 
       const app = createDashboardApp();
-      app.initialise();
+      app.initialise().catch((error) => {
+        console.error('Failed to initialise dashboard', error);
+      });
     </script>
   </body>
 </html>

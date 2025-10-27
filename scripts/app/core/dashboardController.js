@@ -1,4 +1,5 @@
 import { ServerLifecycleState } from '../../services/serverService.js';
+import { translate as t } from '../../ui/i18n.js';
 import { InfoViewState, StatusViewState } from '../../ui/statusPresenter.js';
 import { resolveLifecycleInfo } from './lifecycleInfoResolver.js';
 import { describeError } from './errorDescriptor.js';
@@ -37,7 +38,7 @@ export class DashboardController {
     this.streamHasError = false;
   }
 
-  initialise() {
+  async initialise() {
     this.localeController.applyLocaleToStaticContent();
     this.controlPanelPresenter.cacheDefaultButtonLabels();
     this.applyStatusView(this.currentStatusViewState);
@@ -51,9 +52,20 @@ export class DashboardController {
       this.infoMessageService.refresh();
       this.updateControlAvailability();
     });
-    this.infoMessageService.render({ key: 'info.stream.connecting', state: InfoViewState.PENDING });
     this.updateControlAvailability();
     this.attachEventListeners();
+
+    const requiresStartupPassword = typeof this.services.verifyStartupPassword === 'function';
+    if (requiresStartupPassword) {
+      this.infoMessageService.render({ key: 'info.auth.start.enterPassword', state: InfoViewState.PENDING });
+      const hasAccess = await this.requestStartupAccess();
+      if (!hasAccess) {
+        this.handleStartupDenied();
+        return;
+      }
+    }
+
+    this.infoMessageService.render({ key: 'info.stream.connecting', state: InfoViewState.PENDING });
 
     this.statusCoordinator.connect();
     this.playersCoordinator.connect();
@@ -90,6 +102,16 @@ export class DashboardController {
     if (!confirmStopAction()) {
       return;
     }
+
+    const shutdownAuthResult = await this.requestShutdownAuthorisation();
+    if (shutdownAuthResult !== 'granted') {
+      const infoKey = shutdownAuthResult === 'cancelled'
+        ? 'info.auth.stop.cancelled'
+        : 'info.auth.stop.error';
+      this.infoMessageService.render({ key: infoKey, state: InfoViewState.ERROR });
+      return;
+    }
+
     await this.executeControlAction(async () => this.services.stopServer(), {
       pending: 'info.stop.pending',
       success: 'info.stop.success',
@@ -97,6 +119,112 @@ export class DashboardController {
       sourceButton: this.dom.stopButton,
       busyLabelKey: 'ui.controls.stop.busy',
     });
+  }
+
+  async requestStartupAccess() {
+    if (typeof window === 'undefined' || typeof window.prompt !== 'function') {
+      return true;
+    }
+
+    const { verifyStartupPassword } = this.services;
+    if (typeof verifyStartupPassword !== 'function') {
+      return true;
+    }
+
+    let attempts = 0;
+    while (true) {
+      const promptKey = attempts === 0 ? 'auth.start.prompt' : 'auth.start.retry';
+      const input = window.prompt(t(promptKey), '');
+      if (input === null) {
+        return false;
+      }
+
+      const candidate = input.trim();
+      if (!candidate) {
+        if (typeof window.alert === 'function') {
+          window.alert(t('auth.error.empty'));
+        }
+        attempts += 1;
+        continue;
+      }
+
+      try {
+        const verified = await verifyStartupPassword(candidate);
+        if (verified) {
+          return true;
+        }
+        if (typeof window.alert === 'function') {
+          window.alert(t('auth.start.invalid'));
+        }
+      } catch (error) {
+        console.error('Unable to verify startup password', error);
+        if (typeof window.alert === 'function') {
+          window.alert(t('auth.error.unavailable'));
+        }
+        return false;
+      }
+
+      attempts += 1;
+    }
+  }
+
+  async requestShutdownAuthorisation() {
+    if (typeof window === 'undefined' || typeof window.prompt !== 'function') {
+      return 'granted';
+    }
+
+    const { verifyShutdownPassword } = this.services;
+    if (typeof verifyShutdownPassword !== 'function') {
+      return 'granted';
+    }
+
+    let attempts = 0;
+    while (true) {
+      const promptKey = attempts === 0 ? 'auth.stop.prompt' : 'auth.stop.retry';
+      const input = window.prompt(t(promptKey), '');
+      if (input === null) {
+        return 'cancelled';
+      }
+
+      const candidate = input.trim();
+      if (!candidate) {
+        if (typeof window.alert === 'function') {
+          window.alert(t('auth.error.empty'));
+        }
+        attempts += 1;
+        continue;
+      }
+
+      try {
+        const verified = await verifyShutdownPassword(candidate);
+        if (verified) {
+          return 'granted';
+        }
+        if (typeof window.alert === 'function') {
+          window.alert(t('auth.stop.invalid'));
+        }
+      } catch (error) {
+        console.error('Unable to verify shutdown password', error);
+        if (typeof window.alert === 'function') {
+          window.alert(t('auth.error.unavailable'));
+        }
+        return 'error';
+      }
+
+      attempts += 1;
+    }
+  }
+
+  handleStartupDenied() {
+    this.busy = true;
+    this.statusEligible = false;
+    this.applyStatusView(StatusViewState.UNKNOWN);
+    this.controlPanelPresenter.updateAvailability({
+      busy: true,
+      statusEligible: false,
+      lifecycleState: StatusViewState.UNKNOWN,
+    });
+    this.infoMessageService.render({ key: 'info.auth.start.denied', state: InfoViewState.ERROR });
   }
   async executeControlAction(action, messageKeys, options = {}) {
     this.setBusy(true, StatusViewState.PROCESSING);

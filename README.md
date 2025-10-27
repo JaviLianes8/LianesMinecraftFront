@@ -28,6 +28,14 @@ The project follows Clean Architecture principles. Domain logic lives inside ser
 3. Open `http://localhost:8080` (or your chosen port) in the browser.
 4. Adjust the `REMOTE_API_BASE_URL` variable in `scripts/config.js` if your backend is hosted elsewhere.
 
+## Security configuration
+The dashboard requires two passwords that are validated through serverless functions deployed on Vercel:
+
+- `START_PASSWORD`: guards the initialisation of the dashboard UI.
+- `STOP_PASSWORD`: required before issuing the shutdown command.
+
+Set both variables in your Vercel project (`Settings → Environment Variables`) and redeploy so the `api/auth/start` and `api/auth/stop` functions can read them. For local development use `vercel dev` with a `.env.local` file containing the same keys to emulate the serverless environment.
+
 ## Directory structure
 ```
 .

@@ -1,4 +1,4 @@
-import { request } from '../../httpClient.js';
+import { request } from '../../http/request.js';
 import { createEventSourceSubscription } from './eventSourceSubscription.js';
 
 const PLAYERS_STREAM_ENDPOINT = '/server/players/stream';

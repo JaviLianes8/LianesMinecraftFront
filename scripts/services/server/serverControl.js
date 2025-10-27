@@ -1,4 +1,4 @@
-import { request } from '../../httpClient.js';
+import { request } from '../../http/request.js';
 import { ServerLifecycleState, normaliseServerStatusPayload } from './lifecycle.js';
 
 const STATUS_ENDPOINT = '/server/status';

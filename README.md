@@ -35,7 +35,7 @@ The dashboard requires two passwords: one to unlock the interface and another to
 1. Open the project in the Vercel dashboard and navigate to **Settings → Environment Variables**.
 2. Add `START_PASSWORD` with the value that should desbloquear el panel.
 3. Add `STOP_PASSWORD` with the value que debe autorizar la detención.
-4. En **Settings → Build & Development Settings**, establece **Build Command** en `npm run build` (o garantiza que se ejecute en tu flujo de despliegue).
+4. En **Settings → Build & Development Settings**, establece **Build Command** en `npm run build` y **Output Directory** en `public`.
 5. Desencadena un nuevo despliegue para que Vercel regenere `runtime-config.js` con los secretos actualizados.
 
 ### Desarrollo local
@@ -46,7 +46,7 @@ The dashboard requires two passwords: one to unlock the interface and another to
    npm run build
    ```
 2. Sirve el directorio del proyecto con tu servidor estático favorito (por ejemplo, `npx http-server .`).
-3. Repite `npm run build` cada vez que cambies cualquiera de las contraseñas.
+3. Sirve el contenido generado en `public/` o el directorio raíz (ambos contienen el artefacto listo) y repite `npm run build` cada vez que cambies cualquiera de las contraseñas.
 
 ## Directory structure
 ```

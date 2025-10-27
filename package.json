@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node build/generate-runtime-config.mjs"
+    "build": "node build/build.mjs"
   },
   "engines": {
     "node": ">=18"

@@ -1,0 +1,124 @@
+/* Lightweight overlay for asynchronous feedback */
+.info-overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  z-index: 40;
+  padding: 12px;
+}
+
+/* Visible overlay exposes the feedback panel */
+.info-overlay--visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Overlay backdrop remains transparent for subtlety */
+.info-overlay__backdrop {
+  position: absolute;
+  inset: 0;
+  background: none;
+  backdrop-filter: none;
+}
+
+/* Info panel content styling */
+.info-panel {
+  font-size: 13px;
+  color: #aab3c2;
+  text-align: center;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-radius: 14px;
+  transition: color 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
+  position: relative;
+  z-index: 1;
+  width: min(420px, calc(100vw - 48px));
+  line-height: 1.5;
+  opacity: 0;
+  transform: translateY(12px);
+  pointer-events: auto;
+}
+
+/* Entrance animation for the info panel */
+.info-overlay--visible .info-panel {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Pending state shows spinner by default */
+.info-panel::before {
+  content: '';
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(160, 207, 255, 0.35);
+  border-top-color: rgba(160, 207, 255, 0.8);
+  animation: spin 0.9s linear infinite;
+  display: none;
+}
+
+/* Default placeholder for outcome icon */
+.info-panel::after {
+  content: '';
+  display: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Pending state adopts informational tone */
+.info-panel[data-state='pending'] {
+  color: #a0cfff;
+}
+
+/* Pending state reveals spinner */
+.info-panel[data-state='pending']::before {
+  display: inline-block;
+}
+
+/* Success state uses the shared positive color */
+.info-panel[data-state='success'] {
+  color: var(--ok);
+}
+
+/* Success state reveals checkmark */
+.info-panel[data-state='success']::after {
+  display: inline-flex;
+  content: '✔';
+  width: auto;
+  height: auto;
+  padding: 0;
+  background: none;
+  border-radius: 0;
+  color: var(--ok);
+}
+
+/* Error state uses the shared alert color */
+.info-panel[data-state='error'] {
+  color: var(--bad);
+}
+
+/* Error state reveals cross mark */
+.info-panel[data-state='error']::after {
+  display: inline-flex;
+  content: '✖';
+  width: auto;
+  height: auto;
+  padding: 0;
+  background: none;
+  border-radius: 0;
+  color: var(--bad);
+}

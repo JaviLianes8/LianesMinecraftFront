@@ -1,0 +1,45 @@
+/* Torch container maintains central presentation */
+.torch-container {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 14px;
+}
+
+/* Torch graphic benefits from dramatic drop shadow */
+.torch {
+  position: relative;
+  z-index: 1;
+  width: min(200px, 40vw);
+  filter: drop-shadow(0 12px 22px rgba(0, 0, 0, 0.6));
+  transition: filter 0.2s ease;
+}
+
+/* Torch glow activates when the server reports online */
+.torch-on {
+  filter: drop-shadow(0 12px 22px rgba(0, 0, 0, 0.6)) drop-shadow(var(--glow-on));
+}
+
+/* Flame visibility toggled based on server state */
+.flame {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+/* Flame on class reveals the animated quads */
+.flame-on {
+  opacity: 1;
+}
+
+/* Individual flame quads use phase offsets for variation */
+.fl1 {
+  animation: flick 0.12s infinite ease-in-out;
+}
+
+.fl2 {
+  animation: flick 0.14s infinite ease-in-out 0.03s;
+}
+
+.fl3 {
+  animation: flick 0.16s infinite ease-in-out 0.05s;
+}

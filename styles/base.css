@@ -1,0 +1,81 @@
+/* Base theme tokens and layout primitives for the control dashboard */
+:root {
+  --bg: #0e0f14;
+  --panel: #141821;
+  --text: #e8e6e3;
+  --ok: #23d18b;
+  --bad: #ff4d4d;
+  --border: #262b36;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  --glow-on: 0 0 18px rgba(255, 170, 64, 0.55), 0 0 55px rgba(255, 120, 32, 0.35);
+}
+
+/* Global document setup for full-height layout and readable typography */
+html,
+body {
+  height: 100%;
+  margin: 0;
+  font-family: 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  background: radial-gradient(1300px 700px at 50% 10%, #161a24 0%, #0d1018 60%, var(--bg) 100%);
+  color: var(--text);
+}
+
+/* Body grid keeps header, content, and footer aligned vertically */
+body {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
+
+/* Shared spacing for structural header and footer areas */
+header,
+footer {
+  padding: 16px 20px;
+}
+
+/* Footer text treatment for a subtle appearance */
+footer {
+  text-align: center;
+  color: #9aa3b2;
+  font-size: 12px;
+}
+
+/* Main container ensures the card stays centered on the viewport */
+main {
+  display: grid;
+  place-items: center;
+  padding: 24px 12px 10px;
+}
+
+/* Download links section styles the supplemental resources area */
+.downloads {
+  width: 100%;
+  border-top: 1px dashed #272c37;
+  padding-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+  font-size: 14px;
+  text-align: center;
+}
+
+/* Download anchors adopt theme colors with clear affordances */
+.downloads a {
+  color: #a0cfff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Responsive adjustments to keep the status button visible on narrow screens */
+@media (max-width: 640px) {
+  header {
+    padding-bottom: 64px;
+  }
+
+  .status-button {
+    position: static;
+    display: block;
+    margin: 0 auto;
+  }
+}

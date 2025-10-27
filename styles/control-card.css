@@ -1,0 +1,61 @@
+/* Control card container orchestrating the dashboard layout */
+.control-card {
+  width: min(860px, 94vw);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 22px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 20px;
+  align-items: center;
+  justify-items: center;
+  position: relative;
+}
+
+/* Ensure layered children stack above decorative elements */
+.control-card > *:not(.players-stage):not(.modal) {
+  position: relative;
+  z-index: 1;
+}
+
+/* Card title maintains prominence across viewport sizes */
+.control-card__title {
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  font-size: clamp(22px, 3.2vw, 32px);
+  margin: 0;
+  text-align: center;
+  width: 100%;
+}
+
+/* Full-width button ensures accessibility of the status banner */
+.control-card__title-button {
+  width: 100%;
+}
+
+/* Header wrapper keeps the title centered */
+.control-card__header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Controls row adapts to varying button counts */
+.controls {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* Player stage handles overlayed player info */
+.players-stage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}

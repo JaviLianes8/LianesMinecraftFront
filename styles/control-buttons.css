@@ -1,0 +1,94 @@
+/* Base button styling for server controls */
+.control-button {
+  padding: 12px 18px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: #141a25;
+  color: var(--text);
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.08s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  position: relative;
+  min-width: 160px;
+}
+
+/* Click feedback nudges buttons downward */
+.control-button:active {
+  transform: translateY(1px);
+}
+
+/* Disabled buttons clearly signal inactivity */
+.control-button[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Loading state reserves space for the spinner */
+.control-button[data-loading='true'] {
+  padding-left: 42px;
+  opacity: 1;
+  cursor: progress;
+}
+
+/* Loading spinner animation uses shared keyframes */
+.control-button[data-loading='true']::before {
+  content: '';
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  margin-top: -8px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: rgba(255, 255, 255, 0.85);
+  animation: spin 0.8s linear infinite;
+}
+
+/* Start button colors emphasise positive action */
+.control-button--start {
+  border-color: #2a6b45;
+  background: linear-gradient(135deg, rgba(35, 209, 139, 0.32), rgba(21, 135, 92, 0.18));
+  color: #d9ffee;
+}
+
+/* Start hover adds inset glow */
+.control-button--start:hover:not([disabled]) {
+  box-shadow: 0 0 0 3px rgba(35, 209, 139, 0.2) inset;
+}
+
+/* Stop button colors emphasise caution */
+.control-button--stop {
+  border-color: #743333;
+  background: linear-gradient(135deg, rgba(255, 77, 77, 0.3), rgba(174, 38, 38, 0.16));
+  color: #ffe5e5;
+}
+
+/* Stop hover adds inset glow */
+.control-button--stop:hover:not([disabled]) {
+  box-shadow: 0 0 0 3px rgba(255, 77, 77, 0.2) inset;
+}
+
+/* Help button colors emphasise guidance */
+.control-button--help {
+  border-color: #c76925;
+  background: linear-gradient(135deg, rgba(255, 153, 0, 0.28), rgba(255, 140, 0, 0.08));
+  color: #ffe4c2;
+}
+
+/* Help hover adds inset glow */
+.control-button--help:hover:not([disabled]) {
+  box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.18) inset;
+}
+
+/* Locale toggle colors emphasise internationalisation */
+.control-button--locale {
+  border-color: #2a6ebf;
+  background: linear-gradient(135deg, rgba(109, 173, 255, 0.3), rgba(57, 124, 210, 0.12));
+  color: #d9ecff;
+}
+
+/* Locale hover adds inset glow */
+.control-button--locale:hover:not([disabled]) {
+  box-shadow: 0 0 0 3px rgba(109, 173, 255, 0.18) inset;
+}

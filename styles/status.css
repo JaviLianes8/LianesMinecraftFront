@@ -1,0 +1,104 @@
+/* Status button module handling server state presentation */
+.status-button {
+  font-size: clamp(18px, 3vw, 28px);
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  background: #151a24;
+  color: var(--text);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 18px;
+  cursor: default;
+  box-shadow: var(--shadow);
+  transition: transform 0.1s ease, opacity 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* Active press state introduces a subtle tactile feedback */
+.status-button:active {
+  transform: scale(0.98);
+}
+
+/* Disabled status avoids dimming to keep status legible */
+.status-button[disabled] {
+  opacity: 1;
+  cursor: default;
+}
+
+/* Online state palette conveys success */
+.status-online {
+  color: #052515;
+  background: linear-gradient(#35e6a2, #21cb89);
+  border-color: #1fa77b;
+}
+
+/* Offline state palette conveys failure */
+.status-offline {
+  color: #2b0b0b;
+  background: linear-gradient(#ff7b7b, #ff5757);
+  border-color: #d73b3b;
+}
+
+/* Undefined state palette keeps a neutral tone */
+.status-undefined {
+  color: #1f2430;
+  background: linear-gradient(#e4e7ef, #c6cbda);
+  border-color: #a9afc2;
+}
+
+/* Error state palette highlights unexpected issues */
+.status-error {
+  color: #331010;
+  background: linear-gradient(#ffc9c9, #ff9d9d);
+  border-color: #f26d6d;
+}
+
+/* Pending states share shimmer animation to signal work */
+.status-checking,
+.status-processing {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Checking state leans on cool colors to suggest diagnostics */
+.status-checking {
+  color: #102742;
+  background: linear-gradient(135deg, #a5d8ff 0%, #74b9ff 100%);
+  border-color: #5a9dd8;
+}
+
+/* Processing state uses warm tones to suggest action */
+.status-processing {
+  color: #2d1a00;
+  background: linear-gradient(135deg, #ffd27f 0%, #ffb347 100%);
+  border-color: #e38b2d;
+}
+
+/* Shimmer overlay glides over pending states */
+.status-checking::after,
+.status-processing::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    120deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.35) 45%,
+    rgba(255, 255, 255, 0) 90%
+  );
+  transform: translateX(-100%);
+  animation: status-shimmer 1.2s infinite;
+}
+
+/* Keyframes drive the shimmer travel from left to right */
+@keyframes status-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}

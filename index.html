@@ -182,6 +182,11 @@
 
     <footer data-role="footer">Minecraft server</footer>
 
-    <script type="module" src="./scripts/app.js"></script>
+    <script type="module">
+      import { createDashboardApp } from './scripts/app/dashboardApp.js';
+
+      const app = createDashboardApp();
+      app.initialise();
+    </script>
   </body>
 </html>

@@ -1,9 +1,8 @@
 import { ServerLifecycleState } from '../../services/serverService.js';
 import { InfoViewState, StatusViewState } from '../../ui/statusPresenter.js';
+import { resolveLifecycleInfo } from './lifecycleInfoResolver.js';
+import { describeError } from './errorDescriptor.js';
 import { confirmStopAction } from './stopConfirmation.js';
-import { runControlAction } from './controlActionRunner.js';
-import { requestPasswordAuthorisation } from './passwordPromptFlow.js';
-import { createDashboardControllerHandlers } from './dashboardControllerHandlers.js';
 
 /**
  * High-level orchestrator connecting UI presenters with backend services.
@@ -19,6 +18,7 @@ export class DashboardController {
     statusCoordinator,
     playersCoordinator,
     services,
+    passwordPrompt,
   }) {
     this.dom = dom;
     this.controlPanelPresenter = controlPanelPresenter;
@@ -29,18 +29,15 @@ export class DashboardController {
     this.statusCoordinator = statusCoordinator;
     this.playersCoordinator = playersCoordinator;
     this.services = services;
+    this.passwordPrompt = passwordPrompt ?? null;
 
     this.currentState = ServerLifecycleState.UNKNOWN;
     this.currentStatusViewState = StatusViewState.UNKNOWN;
-    this.statusEligible = false;
-    this.busy = false;
-    this.hasReceivedStatusUpdate = false;
-    this.streamHasError = false;
-
-    Object.assign(this, createDashboardControllerHandlers(this));
+    this.statusEligible = this.busy = false;
+    this.hasReceivedStatusUpdate = this.streamHasError = false;
   }
 
-  async initialise() {
+  initialise() {
     this.localeController.applyLocaleToStaticContent();
     this.controlPanelPresenter.cacheDefaultButtonLabels();
     this.applyStatusView(this.currentStatusViewState);
@@ -53,21 +50,11 @@ export class DashboardController {
       this.applyStatusView(this.currentStatusViewState);
       this.infoMessageService.refresh();
       this.updateControlAvailability();
+      this.passwordPrompt?.refreshActiveTexts();
     });
+    this.infoMessageService.render({ key: 'info.stream.connecting', state: InfoViewState.PENDING });
     this.updateControlAvailability();
     this.attachEventListeners();
-
-    const requiresStartupPassword = typeof this.services.verifyStartupPassword === 'function';
-    if (requiresStartupPassword) {
-      this.infoMessageService.render({ key: 'info.auth.start.enterPassword', state: InfoViewState.PENDING });
-      const hasAccess = await this.requestStartupAccess();
-      if (!hasAccess) {
-        this.handleStartupDenied();
-        return;
-      }
-    }
-
-    this.infoMessageService.render({ key: 'info.stream.connecting', state: InfoViewState.PENDING });
 
     this.statusCoordinator.connect();
     this.playersCoordinator.connect();
@@ -88,7 +75,7 @@ export class DashboardController {
       return;
     }
 
-    await runControlAction(this, async () => this.services.startServer(), {
+    await this.executeControlAction(async () => this.services.startServer(), {
       pending: 'info.start.pending',
       success: 'info.start.success',
     }, {
@@ -101,20 +88,10 @@ export class DashboardController {
       this.infoMessageService.render({ key: 'info.stop.requireOnline', state: InfoViewState.ERROR });
       return;
     }
-    if (!confirmStopAction()) {
+    if (!confirmStopAction() || (await this.passwordPrompt?.ensureStopAccess?.()) === false) {
       return;
     }
-
-    const shutdownAuthResult = await this.requestShutdownAuthorisation();
-    if (shutdownAuthResult !== 'granted') {
-      const infoKey = shutdownAuthResult === 'cancelled'
-        ? 'info.auth.stop.cancelled'
-        : 'info.auth.stop.error';
-      this.infoMessageService.render({ key: infoKey, state: InfoViewState.ERROR });
-      return;
-    }
-
-    await runControlAction(this, async () => this.services.stopServer(), {
+    await this.executeControlAction(async () => this.services.stopServer(), {
       pending: 'info.stop.pending',
       success: 'info.stop.success',
     }, {
@@ -122,42 +99,102 @@ export class DashboardController {
       busyLabelKey: 'ui.controls.stop.busy',
     });
   }
+  async executeControlAction(action, messageKeys, options = {}) {
+    this.setBusy(true, StatusViewState.PROCESSING);
+    this.infoMessageService.render({ key: messageKeys.pending, state: InfoViewState.PENDING });
 
-  async requestStartupAccess() {
-    const outcome = await requestPasswordAuthorisation({
-      verifyPassword: this.services.verifyStartupPassword,
-      promptKeys: { initial: 'auth.start.prompt', retry: 'auth.start.retry' },
-      invalidMessageKey: 'auth.start.invalid',
-      loggerContext: 'startup password',
-    });
+    const { sourceButton, busyLabelKey } = options;
+    const restoreButtonState = sourceButton
+      ? this.controlPanelPresenter.setControlButtonBusy(sourceButton, busyLabelKey)
+      : () => {};
 
-    return outcome === 'granted' || outcome === 'skipped';
-  }
-
-  async requestShutdownAuthorisation() {
-    const outcome = await requestPasswordAuthorisation({
-      verifyPassword: this.services.verifyShutdownPassword,
-      promptKeys: { initial: 'auth.stop.prompt', retry: 'auth.stop.retry' },
-      invalidMessageKey: 'auth.stop.invalid',
-      loggerContext: 'shutdown password',
-    });
-
-    if (outcome === 'skipped') {
-      return 'granted';
+    try {
+      await action();
+      this.currentState = ServerLifecycleState.UNKNOWN;
+      this.statusEligible = false;
+      this.applyStatusView(this.currentState);
+      this.infoMessageService.render({ key: messageKeys.success, state: InfoViewState.SUCCESS });
+    } catch (error) {
+      this.currentState = ServerLifecycleState.ERROR;
+      this.statusEligible = false;
+      this.applyStatusView(StatusViewState.ERROR);
+      const errorDescriptor = describeError(error);
+      this.infoMessageService.render({ ...errorDescriptor, state: InfoViewState.ERROR });
+    } finally {
+      restoreButtonState();
+      this.setBusy(false, this.currentState);
     }
-
-    return outcome;
   }
-
-  handleStartupDenied() {
-    this.busy = true;
-    this.statusEligible = false;
-    this.applyStatusView(StatusViewState.UNKNOWN);
+  setBusy(value, viewState = this.currentState) {
+    this.busy = value;
+    this.updateControlAvailability(viewState);
+    this.applyStatusView(viewState);
+    this.controlPanelPresenter.setStatusBusy(value);
+  }
+  updateControlAvailability(viewState = this.currentStatusViewState) {
     this.controlPanelPresenter.updateAvailability({
-      busy: true,
-      statusEligible: false,
-      lifecycleState: StatusViewState.UNKNOWN,
+      busy: this.busy,
+      statusEligible: this.statusEligible,
+      lifecycleState: viewState,
     });
-    this.infoMessageService.render({ key: 'info.auth.start.denied', state: InfoViewState.ERROR });
+  }
+  applyStatusView(state) {
+    this.currentStatusViewState = state;
+    this.controlPanelPresenter.applyStatusView(state);
+  }
+  handleStatusStreamOpen() {
+    this.streamHasError = false;
+    this.controlPanelPresenter.refreshBusyButtonLabels();
+    if (!this.hasReceivedStatusUpdate) {
+      this.infoMessageService.render({ key: 'info.stream.connected', state: InfoViewState.SUCCESS });
+    }
+  }
+  handleStatusUpdate({ state }) {
+    this.streamHasError = false;
+    this.applyServerLifecycleState(state);
+  }
+  handleStatusStreamError() {
+    if (this.streamHasError) {
+      return;
+    }
+    this.streamHasError = true;
+    const infoKey = this.hasReceivedStatusUpdate ? 'info.stream.reconnecting' : 'info.stream.error';
+    const infoState = this.hasReceivedStatusUpdate ? InfoViewState.PENDING : InfoViewState.ERROR;
+    this.infoMessageService.render({ key: infoKey, state: infoState });
+    this.statusCoordinator.requestSnapshot();
+    this.playersCoordinator.requestSnapshot();
+  }
+  handleStatusStreamUnsupported() {
+    this.infoMessageService.render({ key: 'info.stream.unsupported', state: InfoViewState.ERROR });
+  }
+  handleStatusFallbackStart() { this.playersCoordinator.startFallbackPolling(); }
+  handleStatusFallbackStop() { this.playersCoordinator.stopFallbackPolling(); }
+  handleSnapshotSuccess({ state }) { this.applyServerLifecycleState(state); }
+  handleSnapshotError(error) {
+    this.currentState = ServerLifecycleState.ERROR;
+    this.statusEligible = false;
+    this.applyStatusView(StatusViewState.ERROR);
+    this.updateControlAvailability(StatusViewState.ERROR);
+    const errorDescriptor = describeError(error);
+    this.infoMessageService.render({ ...errorDescriptor, state: InfoViewState.ERROR });
+  }
+  applyServerLifecycleState(state) {
+    this.hasReceivedStatusUpdate = true;
+    this.currentState = state;
+    this.statusEligible =
+      state === ServerLifecycleState.ONLINE || state === ServerLifecycleState.OFFLINE;
+    this.applyStatusView(state);
+    this.updateControlAvailability(state);
+    this.infoMessageService.render(resolveLifecycleInfo(state));
+  }
+  handlePlayersUpdate(snapshot) {
+    const players = snapshot && Array.isArray(snapshot.players) ? snapshot.players : [];
+    this.playersStageController.update(players);
+  }
+  handlePlayersStreamError() {
+    this.playersCoordinator.startFallbackPolling(); this.playersCoordinator.requestSnapshot();
+  }
+  cleanup() {
+    this.statusCoordinator.cleanup(); this.playersCoordinator.cleanup(); this.playersStageController.destroy();
   }
 }

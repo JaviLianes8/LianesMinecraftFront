@@ -28,25 +28,21 @@ The project follows Clean Architecture principles. Domain logic lives inside ser
 3. Open `http://localhost:8080` (or your chosen port) in the browser.
 4. Adjust the `REMOTE_API_BASE_URL` variable in `scripts/config.js` if your backend is hosted elsewhere.
 
-## Security configuration
-The dashboard requires two passwords that are validated through serverless functions deployed on Vercel. A signing secret is
-used to issue short-lived bearer tokens that authorise start/stop operations:
+## Password configuration
+The dashboard requires two passwords: one to unlock the interface and another to stop the server. Both values are provided throu
+gh environment variables so they never ship in the client bundle.
 
-- `START_PASSWORD`: guards the initialisation of the dashboard UI.
-- `STOP_PASSWORD`: required before issuing the shutdown command.
-- `CONTROL_TOKEN_SECRET`: signing key used to generate verification tokens that are sent with lifecycle requests.
+### Vercel deployment
+1. Open your project in the Vercel dashboard and navigate to **Settings → Environment Variables**.
+2. Add `START_PASSWORD` with the value that should unlock the panel.
+3. Add `STOP_PASSWORD` with the value that should authorise shutdown requests.
+4. Redeploy the project (or trigger a new build) so the serverless function can read the new secrets.
 
-Follow these steps to supply the secrets without exposing them in the client bundle:
-
-1. Open your Vercel project and navigate to **Settings → Environment Variables**.
-2. Create the `START_PASSWORD`, `STOP_PASSWORD` and `CONTROL_TOKEN_SECRET` variables with the desired secrets. Avoid committing
-   these values to the repository.
-3. (Optional) Define `CONTROL_TOKEN_TTL_MS` to customise the token lifetime (defaults to 15 minutes).
-4. Trigger a redeploy so the authentication and control functions receive the new values.
-5. For local development, create a `.env.local` file with the same keys and run `vercel dev` to emulate the serverless environment.
-
-If your upstream Minecraft control API is hosted on a different URL, define `REMOTE_SERVER_BASE_URL` (ending with `/api/server`)
-so the control functions proxy requests to the correct origin.
+### Local development with `vercel dev`
+1. Run `vercel env pull .env.local` (or create `.env.local` manually) and define `START_PASSWORD` and `STOP_PASSWORD` inside it.
+2. Launch the project with `npx vercel dev` to serve both the static files and the password API locally.
+3. Visit the local URL reported by Vercel (default `http://localhost:3000`).
+4. When serving files with another tool, proxy `/api/auth` to a process that exposes the same environment variables.
 
 ## Directory structure
 ```
@@ -69,12 +65,13 @@ The following tables summarise the responsibility of each class or exported fact
 ### Application layer (`scripts/app`)
 | File | Type | Responsibility |
 | --- | --- | --- |
-| `dashboardApp.js` | Factory `createDashboardApp` | Connects DOM, presenters and coordinators to deliver a ready-to-initialise `DashboardController`. |
+| `dashboardApp.js` | Factory `createDashboardApp` | Connects DOM, presenters and coordinators and requests the startup password before initialising `DashboardController`. |
 | `control/controlPanelPresenter.js` | Class `ControlPanelPresenter` | Manages control buttons, tooltips, state indicators and accessible loading states. |
 | `core/dashboardController.js` | Class `DashboardController` | Main orchestrator: initialises the UI, processes user actions, synchronises status/player flows and updates contextual messages. |
 | `core/errorDescriptor.js` | Function `describeError` | Converts technical errors into descriptors ready for i18n. |
 | `core/lifecycleInfoResolver.js` | Function `resolveLifecycleInfo` | Maps backend states to informational messages (online/offline/error). |
 | `core/stopConfirmation.js` | Function `confirmStopAction` | Requests consecutive confirmations before stopping the server. |
+| `security/passwordPrompt.js` | Class `PasswordPrompt`, factory `createPasswordPrompt` | Coordinates the password dialog and caches authorised scopes. |
 | `dom/domReferences.js` | Function `createDomReferences` | Centralises DOM queries and returns frozen references. |
 | `info/infoMessageService.js` | Factory `createInfoMessageService` | Renders and reapplies contextual panel messages, normalising descriptors. |
 | `locale/localeController.js` | Class `LocaleController` | Applies localised texts, manages the language toggle and keeps links up to date. |
@@ -91,6 +88,7 @@ The following tables summarise the responsibility of each class or exported fact
 | `server/playersService.js` | Functions `connectToPlayersStream`, `fetchPlayersSnapshot`, `normalisePlayersSnapshotPayload` | Manages player data both in streaming and snapshots. |
 | `server/lifecycle.js` | Utilities `ServerLifecycleState`, `normaliseServerStatusPayload` | Converts arbitrary texts into consistent states for the UI. |
 | `server/eventSourceSubscription.js` | Factory `createEventSourceSubscription` | Creates resilient SSE subscriptions with uniform open/close handling. |
+| `security/passwordAuthoriser.js` | Class `PasswordAuthoriser`, factory `createPasswordAuthoriser` | Calls the password API to verify start/stop credentials. |
 
 ### HTTP layer (`scripts/http`)
 | File | Type | Responsibility |
@@ -131,7 +129,7 @@ The following tables summarise the responsibility of each class or exported fact
 | `rendering/skins/*.js` | Functions `drawXxxSkin` | Pixel-art renderers per player; `index.js` selects the correct skin. |
 
 ## Workflow
-1. **Initialisation:** `createDashboardApp` assembles controllers and starts `DashboardController.initialise()`.
+1. **Initialisation:** `createDashboardApp` requests the startup password before wiring the controllers and starting `DashboardController.initialise()`.
 2. **Connectivity:** `statusCoordinator` and `playersCoordinator` open SSE connections and fall back to polling through `requestSnapshot()` when required.
 3. **User interaction:** Buttons delegate to `DashboardController`, which coordinates HTTP actions (`serverControl`) and updates the view (`ControlPanelPresenter`, `renderInfo`).
 4. **Internationalisation:** `LocaleController` applies translated texts and switches languages using the `i18n` API.

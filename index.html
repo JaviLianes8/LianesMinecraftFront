@@ -181,6 +181,45 @@
       </section>
     </main>
 
+    <div class="password-overlay" data-role="password-overlay" hidden>
+      <div class="password-overlay__backdrop" data-role="password-backdrop"></div>
+      <div
+        class="password-overlay__dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="passwordDialogTitle"
+        aria-describedby="passwordDialogDescription"
+      >
+        <form class="password-overlay__form" data-role="password-form">
+          <h2 id="passwordDialogTitle" data-role="password-title">Secure Access</h2>
+          <p id="passwordDialogDescription" data-role="password-description">
+            Enter the access password to continue.
+          </p>
+          <label class="password-overlay__label" for="passwordInput" data-role="password-label">
+            Password
+          </label>
+          <input
+            id="passwordInput"
+            class="password-overlay__input"
+            type="password"
+            name="password"
+            autocomplete="current-password"
+            required
+            data-role="password-input"
+          />
+          <p class="password-overlay__error" data-role="password-error" aria-live="assertive" hidden></p>
+          <div class="password-overlay__actions">
+            <button class="password-overlay__button password-overlay__button--primary" type="submit" data-role="password-submit">
+              Continue
+            </button>
+            <button class="password-overlay__button" type="button" data-role="password-cancel">
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <footer data-role="footer">Minecraft server</footer>
 
     <script type="module">
@@ -188,7 +227,7 @@
 
       const app = createDashboardApp();
       app.initialise().catch((error) => {
-        console.error('Failed to initialise dashboard', error);
+        console.error('Failed to initialise the dashboard', error);
       });
     </script>
   </body>

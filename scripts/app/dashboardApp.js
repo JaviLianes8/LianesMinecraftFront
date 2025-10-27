@@ -6,7 +6,6 @@ import {
   stopServer,
   subscribeToServerStatusStream,
 } from '../services/serverService.js';
-import { verifyShutdownPassword, verifyStartupPassword } from '../services/securityService.js';
 import { translate as t } from '../ui/i18n.js';
 import { renderInfo } from '../ui/statusPresenter.js';
 import { ControlPanelPresenter } from './control/controlPanelPresenter.js';
@@ -18,6 +17,7 @@ import { InstallationModalController } from './modal/installationModalController
 import { createPlayersCoordinator } from './players/playersCoordinator.js';
 import { PlayersStageController } from './players/playersStageController.js';
 import { createStatusCoordinator } from './status/statusCoordinator.js';
+import { createPasswordPrompt } from './security/passwordPrompt.js';
 
 /**
  * Creates a fully wired dashboard controller ready for initialisation.
@@ -35,12 +35,8 @@ export function createDashboardApp() {
     translate: t,
   });
 
-  const services = {
-    startServer,
-    stopServer,
-    verifyStartupPassword,
-    verifyShutdownPassword,
-  };
+  const services = { startServer, stopServer };
+  const passwordPrompt = createPasswordPrompt(dom, t);
 
   const controller = new DashboardController({
     dom,
@@ -52,6 +48,7 @@ export function createDashboardApp() {
     statusCoordinator: null,
     playersCoordinator: null,
     services,
+    passwordPrompt,
   });
 
   const statusCoordinator = createStatusCoordinator(
@@ -86,5 +83,15 @@ export function createDashboardApp() {
   controller.statusCoordinator = statusCoordinator;
   controller.playersCoordinator = playersCoordinator;
 
-  return controller;
+  return {
+    async initialise() {
+      const authorised = await passwordPrompt.ensureStartAccess();
+      if (!authorised) {
+        return;
+      }
+      controller.initialise();
+    },
+    controller,
+    passwordPrompt,
+  };
 }

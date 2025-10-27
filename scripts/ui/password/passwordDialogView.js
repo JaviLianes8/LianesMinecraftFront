@@ -45,6 +45,7 @@ export class PasswordDialogView {
    */
   show() {
     if (this.overlay) {
+      this.overlay.style.display = 'flex';
       this.overlay.hidden = false;
       this.overlay.removeAttribute('hidden');
     }
@@ -58,6 +59,7 @@ export class PasswordDialogView {
    */
   hide() {
     if (this.overlay) {
+      this.overlay.style.display = 'none';
       this.overlay.hidden = true;
       this.overlay.setAttribute('hidden', '');
     }

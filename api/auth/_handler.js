@@ -1,5 +1,6 @@
 import { readJsonBody, sendJson, sendMethodNotAllowed } from '../_lib/http.js';
 import { isPasswordValid } from '../_lib/password.js';
+import { createAuthToken } from '../_lib/token.js';
 
 /**
  * Factory that returns an authentication handler bound to the specified environment variable.
@@ -8,9 +9,13 @@ import { isPasswordValid } from '../_lib/password.js';
  * @param {string} options.envVar Name of the environment variable storing the password.
  * @returns {(req: import('http').IncomingMessage, res: import('http').ServerResponse) => Promise<void>} Handler.
  */
-export function createPasswordHandler({ envVar }) {
+export function createPasswordHandler({ envVar, scope }) {
   if (!envVar) {
     throw new Error('envVar must be provided.');
+  }
+
+  if (!scope) {
+    throw new Error('scope must be provided.');
   }
 
   return async function handler(req, res) {
@@ -39,6 +44,12 @@ export function createPasswordHandler({ envVar }) {
       return;
     }
 
-    sendJson(res, 200, { success: true });
+    try {
+      const { token, expiresAt } = createAuthToken({ scope });
+      sendJson(res, 200, { success: true, token, expiresAt });
+    } catch (error) {
+      console.error('Unable to generate authentication token.', error);
+      sendJson(res, 500, { error: 'Token generation failed.' });
+    }
   };
 }

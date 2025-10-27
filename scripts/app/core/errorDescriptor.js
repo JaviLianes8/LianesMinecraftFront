@@ -8,6 +8,10 @@ import { translate as t } from '../../ui/i18n.js';
  * @returns {{ key: string, params?: Record<string, unknown>, state?: InfoViewState }} Descriptor ready for translation.
  */
 export function describeError(error) {
+  if (error && typeof error === 'object' && error.code === 'AUTH_MISSING_TOKEN') {
+    return { key: 'error.auth.missingToken' };
+  }
+
   if (error instanceof TimeoutError) {
     return { key: 'error.timeout' };
   }

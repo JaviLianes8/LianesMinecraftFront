@@ -29,17 +29,24 @@ The project follows Clean Architecture principles. Domain logic lives inside ser
 4. Adjust the `REMOTE_API_BASE_URL` variable in `scripts/config.js` if your backend is hosted elsewhere.
 
 ## Security configuration
-The dashboard requires two passwords that are validated through serverless functions deployed on Vercel:
+The dashboard requires two passwords that are validated through serverless functions deployed on Vercel. A signing secret is
+used to issue short-lived bearer tokens that authorise start/stop operations:
 
 - `START_PASSWORD`: guards the initialisation of the dashboard UI.
 - `STOP_PASSWORD`: required before issuing the shutdown command.
+- `CONTROL_TOKEN_SECRET`: signing key used to generate verification tokens that are sent with lifecycle requests.
 
 Follow these steps to supply the secrets without exposing them in the client bundle:
 
 1. Open your Vercel project and navigate to **Settings → Environment Variables**.
-2. Create the `START_PASSWORD` and `STOP_PASSWORD` variables with the desired secrets. Avoid committing these values to the repository.
-3. Trigger a redeploy so the `api/auth/start` and `api/auth/stop` functions receive the new values.
-4. For local development, create a `.env.local` file with the same keys and run `vercel dev` to emulate the serverless environment.
+2. Create the `START_PASSWORD`, `STOP_PASSWORD` and `CONTROL_TOKEN_SECRET` variables with the desired secrets. Avoid committing
+   these values to the repository.
+3. (Optional) Define `CONTROL_TOKEN_TTL_MS` to customise the token lifetime (defaults to 15 minutes).
+4. Trigger a redeploy so the authentication and control functions receive the new values.
+5. For local development, create a `.env.local` file with the same keys and run `vercel dev` to emulate the serverless environment.
+
+If your upstream Minecraft control API is hosted on a different URL, define `REMOTE_SERVER_BASE_URL` (ending with `/api/server`)
+so the control functions proxy requests to the correct origin.
 
 ## Directory structure
 ```

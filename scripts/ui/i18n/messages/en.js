@@ -91,6 +91,7 @@ export const enMessages = {
   'auth.stop.invalid': 'The shutdown password is incorrect.',
   'auth.error.empty': 'Password cannot be empty.',
   'auth.error.unavailable': 'Password verification service unavailable. Try again later.',
+  'error.auth.missingToken': 'Authentication expired. Please verify the password again.',
   'error.timeout': 'Timed out while contacting the server.',
   'error.network': 'The API could not be reached. Check the connection or CORS policy.',
   'error.httpWithDescription': 'The server responded with an error {status} ({description}).',

@@ -1,4 +1,5 @@
 import { REQUEST_TIMEOUT_MS } from '../../config.js';
+import { storeAuthToken, clearAuthToken } from './authTokenStore.js';
 
 const AUTH_BASE_PATH = '/api/auth';
 
@@ -27,7 +28,7 @@ function buildAuthUrl(path = '') {
  * @param {string} password Password provided by the user.
  * @returns {Promise<boolean>} Resolves to `true` when the password is accepted.
  */
-async function verifyPassword(endpoint, password) {
+async function verifyPassword(endpoint, password, scope) {
   if (typeof password !== 'string' || password.length === 0) {
     throw new Error('Password must be a non-empty string.');
   }
@@ -57,6 +58,7 @@ async function verifyPassword(endpoint, password) {
     }
 
     if (response.status === 401 || response.status === 403) {
+      clearAuthToken(scope);
       return false;
     }
 
@@ -67,7 +69,13 @@ async function verifyPassword(endpoint, password) {
       throw failure;
     }
 
-    return Boolean(payload && payload.success === true);
+    if (payload && payload.success === true && typeof payload.token === 'string') {
+      storeAuthToken(scope, payload.token, payload.expiresAt);
+      return true;
+    }
+
+    clearAuthToken(scope);
+    return false;
   } finally {
     if (timeoutId) {
       clearTimeout(timeoutId);
@@ -82,7 +90,7 @@ async function verifyPassword(endpoint, password) {
  * @returns {Promise<boolean>} Whether the provided password is valid.
  */
 export function verifyStartupPassword(password) {
-  return verifyPassword('start', password);
+  return verifyPassword('start', password, 'start');
 }
 
 /**
@@ -92,5 +100,5 @@ export function verifyStartupPassword(password) {
  * @returns {Promise<boolean>} Whether the provided password is valid.
  */
 export function verifyShutdownPassword(password) {
-  return verifyPassword('stop', password);
+  return verifyPassword('stop', password, 'stop');
 }

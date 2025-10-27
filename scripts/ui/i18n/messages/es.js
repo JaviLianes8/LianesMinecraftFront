@@ -91,6 +91,7 @@ export const esMessages = {
   'auth.stop.invalid': 'La contraseña de apagado es incorrecta.',
   'auth.error.empty': 'La contraseña no puede estar vacía.',
   'auth.error.unavailable': 'El servicio de verificación de contraseñas no está disponible. Inténtalo más tarde.',
+  'error.auth.missingToken': 'La autenticación expiró. Verifica la contraseña nuevamente.',
   'error.timeout': 'Tiempo de espera agotado al contactar con el servidor.',
   'error.network': 'No se pudo contactar con la API. Comprueba la conexión o la configuración de CORS.',
   'error.httpWithDescription': 'El servidor respondió con un error {status} ({description}).',

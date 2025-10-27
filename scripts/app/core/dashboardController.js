@@ -1,9 +1,9 @@
 import { ServerLifecycleState } from '../../services/serverService.js';
-import { translate as t } from '../../ui/i18n.js';
 import { InfoViewState, StatusViewState } from '../../ui/statusPresenter.js';
-import { resolveLifecycleInfo } from './lifecycleInfoResolver.js';
-import { describeError } from './errorDescriptor.js';
 import { confirmStopAction } from './stopConfirmation.js';
+import { runControlAction } from './controlActionRunner.js';
+import { requestPasswordAuthorisation } from './passwordPromptFlow.js';
+import { createDashboardControllerHandlers } from './dashboardControllerHandlers.js';
 
 /**
  * High-level orchestrator connecting UI presenters with backend services.
@@ -36,6 +36,8 @@ export class DashboardController {
     this.busy = false;
     this.hasReceivedStatusUpdate = false;
     this.streamHasError = false;
+
+    Object.assign(this, createDashboardControllerHandlers(this));
   }
 
   async initialise() {
@@ -86,7 +88,7 @@ export class DashboardController {
       return;
     }
 
-    await this.executeControlAction(async () => this.services.startServer(), {
+    await runControlAction(this, async () => this.services.startServer(), {
       pending: 'info.start.pending',
       success: 'info.start.success',
     }, {
@@ -112,7 +114,7 @@ export class DashboardController {
       return;
     }
 
-    await this.executeControlAction(async () => this.services.stopServer(), {
+    await runControlAction(this, async () => this.services.stopServer(), {
       pending: 'info.stop.pending',
       success: 'info.stop.success',
     }, {
@@ -122,97 +124,29 @@ export class DashboardController {
   }
 
   async requestStartupAccess() {
-    if (typeof window === 'undefined' || typeof window.prompt !== 'function') {
-      return true;
-    }
+    const outcome = await requestPasswordAuthorisation({
+      verifyPassword: this.services.verifyStartupPassword,
+      promptKeys: { initial: 'auth.start.prompt', retry: 'auth.start.retry' },
+      invalidMessageKey: 'auth.start.invalid',
+      loggerContext: 'startup password',
+    });
 
-    const { verifyStartupPassword } = this.services;
-    if (typeof verifyStartupPassword !== 'function') {
-      return true;
-    }
-
-    let attempts = 0;
-    while (true) {
-      const promptKey = attempts === 0 ? 'auth.start.prompt' : 'auth.start.retry';
-      const input = window.prompt(t(promptKey), '');
-      if (input === null) {
-        return false;
-      }
-
-      const candidate = input.trim();
-      if (!candidate) {
-        if (typeof window.alert === 'function') {
-          window.alert(t('auth.error.empty'));
-        }
-        attempts += 1;
-        continue;
-      }
-
-      try {
-        const verified = await verifyStartupPassword(candidate);
-        if (verified) {
-          return true;
-        }
-        if (typeof window.alert === 'function') {
-          window.alert(t('auth.start.invalid'));
-        }
-      } catch (error) {
-        console.error('Unable to verify startup password', error);
-        if (typeof window.alert === 'function') {
-          window.alert(t('auth.error.unavailable'));
-        }
-        return false;
-      }
-
-      attempts += 1;
-    }
+    return outcome === 'granted' || outcome === 'skipped';
   }
 
   async requestShutdownAuthorisation() {
-    if (typeof window === 'undefined' || typeof window.prompt !== 'function') {
+    const outcome = await requestPasswordAuthorisation({
+      verifyPassword: this.services.verifyShutdownPassword,
+      promptKeys: { initial: 'auth.stop.prompt', retry: 'auth.stop.retry' },
+      invalidMessageKey: 'auth.stop.invalid',
+      loggerContext: 'shutdown password',
+    });
+
+    if (outcome === 'skipped') {
       return 'granted';
     }
 
-    const { verifyShutdownPassword } = this.services;
-    if (typeof verifyShutdownPassword !== 'function') {
-      return 'granted';
-    }
-
-    let attempts = 0;
-    while (true) {
-      const promptKey = attempts === 0 ? 'auth.stop.prompt' : 'auth.stop.retry';
-      const input = window.prompt(t(promptKey), '');
-      if (input === null) {
-        return 'cancelled';
-      }
-
-      const candidate = input.trim();
-      if (!candidate) {
-        if (typeof window.alert === 'function') {
-          window.alert(t('auth.error.empty'));
-        }
-        attempts += 1;
-        continue;
-      }
-
-      try {
-        const verified = await verifyShutdownPassword(candidate);
-        if (verified) {
-          return 'granted';
-        }
-        if (typeof window.alert === 'function') {
-          window.alert(t('auth.stop.invalid'));
-        }
-      } catch (error) {
-        console.error('Unable to verify shutdown password', error);
-        if (typeof window.alert === 'function') {
-          window.alert(t('auth.error.unavailable'));
-        }
-        return 'error';
-      }
-
-      attempts += 1;
-    }
+    return outcome;
   }
 
   handleStartupDenied() {
@@ -225,103 +159,5 @@ export class DashboardController {
       lifecycleState: StatusViewState.UNKNOWN,
     });
     this.infoMessageService.render({ key: 'info.auth.start.denied', state: InfoViewState.ERROR });
-  }
-  async executeControlAction(action, messageKeys, options = {}) {
-    this.setBusy(true, StatusViewState.PROCESSING);
-    this.infoMessageService.render({ key: messageKeys.pending, state: InfoViewState.PENDING });
-
-    const { sourceButton, busyLabelKey } = options;
-    const restoreButtonState = sourceButton
-      ? this.controlPanelPresenter.setControlButtonBusy(sourceButton, busyLabelKey)
-      : () => {};
-
-    try {
-      await action();
-      this.currentState = ServerLifecycleState.UNKNOWN;
-      this.statusEligible = false;
-      this.applyStatusView(this.currentState);
-      this.infoMessageService.render({ key: messageKeys.success, state: InfoViewState.SUCCESS });
-    } catch (error) {
-      this.currentState = ServerLifecycleState.ERROR;
-      this.statusEligible = false;
-      this.applyStatusView(StatusViewState.ERROR);
-      const errorDescriptor = describeError(error);
-      this.infoMessageService.render({ ...errorDescriptor, state: InfoViewState.ERROR });
-    } finally {
-      restoreButtonState();
-      this.setBusy(false, this.currentState);
-    }
-  }
-  setBusy(value, viewState = this.currentState) {
-    this.busy = value;
-    this.updateControlAvailability(viewState);
-    this.applyStatusView(viewState);
-    this.controlPanelPresenter.setStatusBusy(value);
-  }
-  updateControlAvailability(viewState = this.currentStatusViewState) {
-    this.controlPanelPresenter.updateAvailability({
-      busy: this.busy,
-      statusEligible: this.statusEligible,
-      lifecycleState: viewState,
-    });
-  }
-  applyStatusView(state) {
-    this.currentStatusViewState = state;
-    this.controlPanelPresenter.applyStatusView(state);
-  }
-  handleStatusStreamOpen() {
-    this.streamHasError = false;
-    this.controlPanelPresenter.refreshBusyButtonLabels();
-    if (!this.hasReceivedStatusUpdate) {
-      this.infoMessageService.render({ key: 'info.stream.connected', state: InfoViewState.SUCCESS });
-    }
-  }
-  handleStatusUpdate({ state }) {
-    this.streamHasError = false;
-    this.applyServerLifecycleState(state);
-  }
-  handleStatusStreamError() {
-    if (this.streamHasError) {
-      return;
-    }
-    this.streamHasError = true;
-    const infoKey = this.hasReceivedStatusUpdate ? 'info.stream.reconnecting' : 'info.stream.error';
-    const infoState = this.hasReceivedStatusUpdate ? InfoViewState.PENDING : InfoViewState.ERROR;
-    this.infoMessageService.render({ key: infoKey, state: infoState });
-    this.statusCoordinator.requestSnapshot();
-    this.playersCoordinator.requestSnapshot();
-  }
-  handleStatusStreamUnsupported() {
-    this.infoMessageService.render({ key: 'info.stream.unsupported', state: InfoViewState.ERROR });
-  }
-  handleStatusFallbackStart() { this.playersCoordinator.startFallbackPolling(); }
-  handleStatusFallbackStop() { this.playersCoordinator.stopFallbackPolling(); }
-  handleSnapshotSuccess({ state }) { this.applyServerLifecycleState(state); }
-  handleSnapshotError(error) {
-    this.currentState = ServerLifecycleState.ERROR;
-    this.statusEligible = false;
-    this.applyStatusView(StatusViewState.ERROR);
-    this.updateControlAvailability(StatusViewState.ERROR);
-    const errorDescriptor = describeError(error);
-    this.infoMessageService.render({ ...errorDescriptor, state: InfoViewState.ERROR });
-  }
-  applyServerLifecycleState(state) {
-    this.hasReceivedStatusUpdate = true;
-    this.currentState = state;
-    this.statusEligible =
-      state === ServerLifecycleState.ONLINE || state === ServerLifecycleState.OFFLINE;
-    this.applyStatusView(state);
-    this.updateControlAvailability(state);
-    this.infoMessageService.render(resolveLifecycleInfo(state));
-  }
-  handlePlayersUpdate(snapshot) {
-    const players = snapshot && Array.isArray(snapshot.players) ? snapshot.players : [];
-    this.playersStageController.update(players);
-  }
-  handlePlayersStreamError() {
-    this.playersCoordinator.startFallbackPolling(); this.playersCoordinator.requestSnapshot();
-  }
-  cleanup() {
-    this.statusCoordinator.cleanup(); this.playersCoordinator.cleanup(); this.playersStageController.destroy();
   }
 }

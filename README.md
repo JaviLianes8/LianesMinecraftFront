@@ -34,7 +34,12 @@ The dashboard requires two passwords that are validated through serverless funct
 - `START_PASSWORD`: guards the initialisation of the dashboard UI.
 - `STOP_PASSWORD`: required before issuing the shutdown command.
 
-Set both variables in your Vercel project (`Settings → Environment Variables`) and redeploy so the `api/auth/start` and `api/auth/stop` functions can read them. For local development use `vercel dev` with a `.env.local` file containing the same keys to emulate the serverless environment.
+Follow these steps to supply the secrets without exposing them in the client bundle:
+
+1. Open your Vercel project and navigate to **Settings → Environment Variables**.
+2. Create the `START_PASSWORD` and `STOP_PASSWORD` variables with the desired secrets. Avoid committing these values to the repository.
+3. Trigger a redeploy so the `api/auth/start` and `api/auth/stop` functions receive the new values.
+4. For local development, create a `.env.local` file with the same keys and run `vercel dev` to emulate the serverless environment.
 
 ## Directory structure
 ```

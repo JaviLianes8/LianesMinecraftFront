@@ -44,7 +44,10 @@ export class PasswordDialogView {
    * Displays the overlay and prepares the form for user interaction.
    */
   show() {
-    this.overlay?.removeAttribute('hidden');
+    if (this.overlay) {
+      this.overlay.hidden = false;
+      this.overlay.removeAttribute('hidden');
+    }
     document.body.setAttribute('data-password-dialog-active', 'true');
     this.clearError();
     this.focusInput();
@@ -54,7 +57,10 @@ export class PasswordDialogView {
    * Hides the overlay from the viewport and restores the scroll behaviour.
    */
   hide() {
-    this.overlay?.setAttribute('hidden', '');
+    if (this.overlay) {
+      this.overlay.hidden = true;
+      this.overlay.setAttribute('hidden', '');
+    }
     document.body.removeAttribute('data-password-dialog-active');
   }
 

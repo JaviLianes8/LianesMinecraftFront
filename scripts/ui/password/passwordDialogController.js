@@ -48,6 +48,7 @@ export class PasswordDialogController {
   close() {
     this.view.hide();
     this.view.resetInput();
+    this.view.clearError();
     this.activeScope = null;
     this.resolvePromise = null;
   }
@@ -144,14 +145,11 @@ export class PasswordDialogController {
   }
 
   handleCancel() {
-    this.view.resetInput();
-    if (!this.resolvePromise) {
-      return;
+    const resolver = this.resolvePromise;
+    this.close();
+    if (resolver) {
+      resolver(null);
     }
-
-    const resolve = this.resolvePromise;
-    this.resolvePromise = null;
-    resolve(null);
   }
 }
 

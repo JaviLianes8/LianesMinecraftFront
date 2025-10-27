@@ -214,18 +214,22 @@ main {
 
 .control-button--start {
   border-color: #2a6b45;
+  background: linear-gradient(135deg, rgba(35, 209, 139, 0.32), rgba(21, 135, 92, 0.18));
+  color: #d9ffee;
 }
 
 .control-button--start:hover:not([disabled]) {
-  box-shadow: 0 0 0 3px rgba(35, 209, 139, 0.15) inset;
+  box-shadow: 0 0 0 3px rgba(35, 209, 139, 0.2) inset;
 }
 
 .control-button--stop {
   border-color: #743333;
+  background: linear-gradient(135deg, rgba(255, 77, 77, 0.3), rgba(174, 38, 38, 0.16));
+  color: #ffe5e5;
 }
 
 .control-button--stop:hover:not([disabled]) {
-  box-shadow: 0 0 0 3px rgba(255, 77, 77, 0.15) inset;
+  box-shadow: 0 0 0 3px rgba(255, 77, 77, 0.2) inset;
 }
 
 .control-button--help {

@@ -87,9 +87,6 @@ export function createStatusCoordinator(
 
     handlers.onFallbackStart?.();
     scheduleReconnectAttempt();
-    requestSnapshot().catch((error) => {
-      logger.error('Unable to refresh status snapshot during fallback start', error);
-    });
     fallbackPollingId = setIntervalFn(() => {
       requestSnapshot().catch((error) => {
         logger.error('Unable to refresh status snapshot during fallback polling', error);

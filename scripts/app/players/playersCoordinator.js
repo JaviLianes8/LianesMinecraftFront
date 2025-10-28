@@ -103,7 +103,6 @@ export function createPlayersCoordinator(
 
     handlers.onFallbackStart?.();
     scheduleReconnectAttempt();
-    requestSnapshot();
     playersFallbackPollingId = setIntervalFn(() => {
       requestSnapshot();
       scheduleReconnectAttempt();

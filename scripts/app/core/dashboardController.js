@@ -91,10 +91,12 @@ export class DashboardController {
     this.updateControlAvailability();
     this.attachEventListeners();
 
-    await this.loadInitialSnapshots();
+    const initialSnapshotsPromise = this.loadInitialSnapshots();
 
     this.statusCoordinator.connect();
     this.playersCoordinator.connect();
+
+    await initialSnapshotsPromise;
     if (typeof window !== 'undefined') {
       window.addEventListener('beforeunload', () => this.cleanup(), { once: true });
     }

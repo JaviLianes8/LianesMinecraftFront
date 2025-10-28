@@ -52,9 +52,19 @@ footer {
 
 /* Footer text treatment for a subtle appearance */
 footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   text-align: center;
   color: #9aa3b2;
   font-size: 12px;
+}
+
+.footer__github-icon {
+  width: 16px;
+  height: 16px;
+  display: block;
 }
 
 /* Main container ensures the card stays centered on the viewport */

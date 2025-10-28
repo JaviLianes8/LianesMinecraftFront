@@ -17,7 +17,8 @@ export class LocaleController {
    * @param {HTMLElement} dom.installHelpButton Button opening the installation modal.
    * @param {HTMLElement} dom.installModalTitle Modal title element.
    * @param {HTMLElement} dom.installModalBody Modal body container where HTML is injected.
-   * @param {HTMLElement} dom.footerElement Footer element displaying the copyright.
+   * @param {HTMLElement} dom.footerTextElement Element displaying the footer text content.
+   * @param {HTMLAnchorElement} dom.footerGithubLink Anchor pointing to the dashboard GitHub repository.
    * @param {HTMLButtonElement} dom.localeToggleButton Button toggling locales.
    * @param {Object} [dependencies] Optional overrides for translation behaviour.
    * @param {(key: string, params?: Record<string, unknown>) => string} [dependencies.translate]
@@ -43,7 +44,8 @@ export class LocaleController {
       installHelpButton,
       installModalTitle,
       installModalBody,
-      footerElement,
+      footerTextElement,
+      footerGithubLink,
     } = this.dom;
 
     const locale = getActiveLocale();
@@ -96,8 +98,14 @@ export class LocaleController {
       installModalBody.innerHTML = this.translate('ui.installation.popup.body');
     }
 
-    if (footerElement) {
-      footerElement.textContent = this.translate('ui.footer');
+    if (footerTextElement) {
+      footerTextElement.textContent = this.translate('ui.footer');
+    }
+
+    if (footerGithubLink) {
+      const githubLabel = this.translate('ui.footer.githubLink.label');
+      footerGithubLink.setAttribute('aria-label', githubLabel);
+      footerGithubLink.setAttribute('title', githubLabel);
     }
   }
 

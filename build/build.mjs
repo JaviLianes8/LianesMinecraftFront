@@ -23,7 +23,7 @@ async function prepareOutputDirectory() {
  * @returns {Promise<void>} Resolves after all files are copied.
  */
 async function copyStaticAssets() {
-  const directories = ['assets', 'scripts', 'styles'];
+  const directories = ['assets', 'img', 'scripts', 'styles'];
   await Promise.all(
     directories.map((directory) =>
       cp(resolve(projectRoot, directory), resolve(outputDir, directory), { recursive: true })

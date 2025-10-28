@@ -2,6 +2,7 @@
  * @file Coordinates password-based authorisation flows for the dashboard.
  */
 
+import { getPasswordAuthorisationCache } from './passwordAuthorisationCache.js';
 import { createPasswordVerifier } from './passwordVerifier.js';
 import { createPasswordDialog } from '../../ui/password/passwordDialogController.js';
 
@@ -15,12 +16,21 @@ export class PasswordPrompt {
    * Dialog controller responsible for UI interactions.
    * @param {(key: string) => string} options.translate Translation function resolving message keys.
    * @param {import('./passwordVerifier.js').PasswordVerifier} [options.verifier] Optional password verifier.
+   * @param {import('./passwordAuthorisationCache.js').PasswordAuthorisationCache} [options.authorisationCache]
+   * Cache managing persisted authorisations.
    */
-  constructor({ dialog, translate, verifier = createPasswordVerifier() }) {
+  constructor({
+    dialog,
+    translate,
+    verifier = createPasswordVerifier(),
+    authorisationCache = getPasswordAuthorisationCache(),
+  }) {
     this.dialog = dialog;
     this.translate = translate;
     this.verifier = verifier;
-    this.authorisedScopes = new Set();
+    this.authorisationCache = authorisationCache;
+    const cachedScopes = this.authorisationCache?.loadAuthorisedScopes?.();
+    this.authorisedScopes = cachedScopes instanceof Set ? new Set(cachedScopes) : new Set();
   }
 
   /**
@@ -76,6 +86,7 @@ export class PasswordPrompt {
         if (result.authorised) {
           if (remember) {
             this.authorisedScopes.add(scope);
+            this.authorisationCache?.persistScope?.(scope);
           }
           this.dialog.close();
           return true;

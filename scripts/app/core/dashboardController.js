@@ -55,10 +55,17 @@ export class DashboardController {
     this.updateControlAvailability();
     this.attachEventListeners();
 
-    this.statusCoordinator.connect();
-    this.playersCoordinator.connect();
     this.statusCoordinator.requestSnapshot();
     this.playersCoordinator.requestSnapshot();
+    const startStreamConnections = () => {
+      this.statusCoordinator.connect();
+      this.playersCoordinator.connect();
+    };
+    if (typeof setTimeout === 'function') {
+      setTimeout(startStreamConnections, 0);
+    } else {
+      startStreamConnections();
+    }
     if (typeof window !== 'undefined') {
       window.addEventListener('beforeunload', () => this.cleanup(), { once: true });
     }

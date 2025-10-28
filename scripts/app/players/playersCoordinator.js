@@ -10,6 +10,8 @@ export function createPlayersCoordinator(
     fallbackIntervalMs = PLAYERS_FALLBACK_INTERVAL_MS,
     setIntervalFn = setInterval,
     clearIntervalFn = clearInterval,
+    setTimeoutFn = setTimeout,
+    clearTimeoutFn = clearTimeout,
     logger = console,
   },
   handlers = {},
@@ -17,6 +19,7 @@ export function createPlayersCoordinator(
   let playersStreamSubscription = null;
   let playersSnapshotPromise = null;
   let playersFallbackPollingId = null;
+  let reconnectTimeoutId = null;
 
   const cleanupStream = () => {
     if (playersStreamSubscription && typeof playersStreamSubscription.close === 'function') {
@@ -25,8 +28,29 @@ export function createPlayersCoordinator(
     playersStreamSubscription = null;
   };
 
+  const cancelScheduledReconnect = () => {
+    if (!reconnectTimeoutId) {
+      return;
+    }
+
+    clearTimeoutFn(reconnectTimeoutId);
+    reconnectTimeoutId = null;
+  };
+
+  const scheduleReconnect = (delayMs) => {
+    if (!Number.isFinite(delayMs) || delayMs <= 0 || reconnectTimeoutId) {
+      return;
+    }
+
+    reconnectTimeoutId = setTimeoutFn(() => {
+      reconnectTimeoutId = null;
+      connect();
+    }, delayMs);
+  };
+
   const connect = () => {
     cleanupStream();
+    cancelScheduledReconnect();
 
     const subscription = connectToPlayersStream({
       onOpen: () => {
@@ -43,8 +67,13 @@ export function createPlayersCoordinator(
     });
 
     if (!subscription.source) {
+      const { status, retryInMs } = subscription;
       startFallbackPolling();
-      handlers.onStreamUnsupported?.();
+      if (status === 'unsupported') {
+        handlers.onStreamUnsupported?.();
+      } else {
+        scheduleReconnect(typeof retryInMs === 'number' ? retryInMs : fallbackIntervalMs);
+      }
       requestSnapshot();
       return;
     }
@@ -97,6 +126,7 @@ export function createPlayersCoordinator(
   const cleanup = () => {
     cleanupStream();
     stopFallbackPolling();
+    cancelScheduledReconnect();
   };
 
   return Object.freeze({ connect, requestSnapshot, startFallbackPolling, stopFallbackPolling, cleanup });

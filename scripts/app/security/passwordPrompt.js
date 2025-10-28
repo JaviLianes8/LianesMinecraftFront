@@ -62,6 +62,7 @@ export class PasswordPrompt {
 
   async ensureScope(scope, { remember = false } = {}) {
     if (this.isScopeAuthorised(scope)) {
+      this.dialog?.close();
       return true;
     }
 

@@ -45,7 +45,7 @@ body {
 }
 
 /* Shared spacing for structural header and footer areas */
-header,
+.top-bar,
 footer {
   padding: 16px 20px;
 }
@@ -55,6 +55,35 @@ footer {
   text-align: center;
   color: #9aa3b2;
   font-size: 12px;
+}
+
+/* Top bar keeps utility actions aligned to the right */
+.top-bar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+}
+
+.top-bar__link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  transition: transform 120ms ease, filter 120ms ease;
+}
+
+.top-bar__link:focus-visible,
+.top-bar__link:hover {
+  transform: scale(1.05);
+  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.35));
+}
+
+.top-bar__icon {
+  width: 24px;
+  height: 24px;
 }
 
 /* Main container ensures the card stays centered on the viewport */
@@ -87,7 +116,7 @@ main {
 
 /* Responsive adjustments to keep the status button visible on narrow screens */
 @media (max-width: 640px) {
-  header {
+  .top-bar {
     padding-bottom: 64px;
   }
 

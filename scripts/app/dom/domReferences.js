@@ -20,6 +20,7 @@ export function createDomReferences() {
   const installModalOverlay = document.querySelector('[data-role="install-modal-overlay"]');
   const installModalTitle = document.querySelector('[data-role="install-modal-title"]');
   const installModalBody = document.querySelector('[data-role="install-modal-body"]');
+  const githubLink = document.querySelector('[data-role="github-link"]');
   const footerElement = document.querySelector('[data-role="footer"]');
   const downloadsLabel = document.querySelector('[data-role="downloads-label"]');
   const modsLink = document.querySelector('[data-role="download-mods"]');
@@ -51,6 +52,7 @@ export function createDomReferences() {
     installModalOverlay,
     installModalTitle,
     installModalBody,
+    githubLink,
     footerElement,
     downloadsLabel,
     modsLink,

@@ -4,6 +4,7 @@
 
 import { createPasswordVerifier } from './passwordVerifier.js';
 import { createPasswordSession } from './passwordSession.js';
+import { PasswordAuthorisationRestorer } from './passwordAuthorisationRestorer.js';
 import { createPasswordDialog } from '../../ui/password/passwordDialogController.js';
 
 /**
@@ -24,7 +25,12 @@ export class PasswordPrompt {
     this.verifier = verifier;
     this.session = session;
     this.authorisedScopes = new Set();
-    this.restoreRememberedScopes();
+    this.authorisationRestorer = new PasswordAuthorisationRestorer({
+      session: this.session,
+      verifier: this.verifier,
+      authorisedScopes: this.authorisedScopes,
+    });
+    this.authorisationRestorer.initialise();
   }
 
   /**
@@ -62,6 +68,12 @@ export class PasswordPrompt {
   }
 
   async ensureScope(scope, { remember = false } = {}) {
+    try {
+      await this.authorisationRestorer.waitForCompletion();
+    } catch (error) {
+      console.warn('Failed to restore remembered password authorisations', error);
+    }
+
     if (this.isScopeAuthorised(scope)) {
       if (this.dialog?.isVisible?.()) {
         this.dialog.close();
@@ -129,29 +141,6 @@ export class PasswordPrompt {
     }
   }
 
-  /**
-   * Restores remembered authorisations from the persisted session data.
-   *
-   * @returns {void}
-   */
-  restoreRememberedScopes() {
-    const stored = this.session?.getAuthorisedSnapshot?.();
-    if (!stored) {
-      return;
-    }
-
-    Object.entries(stored).forEach(([scope, storedHash]) => {
-      const expectedHash = this.verifier.getExpectedHash(scope);
-      if (expectedHash && storedHash === expectedHash) {
-        this.authorisedScopes.add(scope);
-        return;
-      }
-
-      if (storedHash && this.session?.clearAuthorised) {
-        this.session.clearAuthorised(scope);
-      }
-    });
-  }
 }
 
 /**

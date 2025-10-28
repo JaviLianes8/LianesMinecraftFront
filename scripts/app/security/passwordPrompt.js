@@ -29,8 +29,8 @@ export class PasswordPrompt {
     this.translate = translate;
     this.verifier = verifier;
     this.authorisationCache = authorisationCache;
-    const cachedScopes = this.authorisationCache?.loadAuthorisedScopes?.();
-    this.authorisedScopes = cachedScopes instanceof Set ? new Set(cachedScopes) : new Set();
+    this.authorisedScopes = new Set();
+    this.syncAuthorisedScopes();
   }
 
   /**
@@ -68,6 +68,7 @@ export class PasswordPrompt {
   }
 
   async ensureScope(scope, { remember = false } = {}) {
+    this.syncAuthorisedScopes();
     if (this.authorisedScopes.has(scope)) {
       return true;
     }
@@ -84,8 +85,8 @@ export class PasswordPrompt {
         this.dialog.setBusy(true);
         const result = await this.verifier.verify({ scope, password });
         if (result.authorised) {
+          this.authorisedScopes.add(scope);
           if (remember) {
-            this.authorisedScopes.add(scope);
             this.authorisationCache?.persistScope?.(scope);
           }
           this.dialog.close();
@@ -112,6 +113,22 @@ export class PasswordPrompt {
       submitLabel: this.translate('ui.password.submit'),
       cancelLabel: this.translate('ui.password.cancel'),
     };
+  }
+
+  /**
+   * Synchronises the in-memory authorised scopes with the persisted cache.
+   */
+  syncAuthorisedScopes() {
+    const cachedScopes = this.authorisationCache?.loadAuthorisedScopes?.();
+    if (!cachedScopes || typeof cachedScopes[Symbol.iterator] !== 'function') {
+      return;
+    }
+
+    for (const scope of cachedScopes) {
+      if (typeof scope === 'string' && scope.length > 0) {
+        this.authorisedScopes.add(scope);
+      }
+    }
   }
 }
 

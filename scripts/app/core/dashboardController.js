@@ -32,7 +32,7 @@ export class DashboardController {
     this.passwordPrompt = passwordPrompt ?? null;
 
     this.currentState = ServerLifecycleState.UNKNOWN;
-    this.currentStatusViewState = StatusViewState.UNKNOWN;
+    this.currentStatusViewState = StatusViewState.CHECKING;
     this.statusEligible = this.busy = false;
     this.hasReceivedStatusUpdate = this.streamHasError = false;
   }

@@ -1,4 +1,8 @@
-import { ENEMY_TYPES, createEnemy, stepEnemy } from './enemyLifecycle.js';
+import { createEnemy, stepEnemy } from './enemyLifecycle.js';
+import { DEFAULT_ENEMY_SPAWN_RULES } from './enemySpawnRules.js';
+import { EnemyPopulationBalancer } from './enemyPopulationBalancer.js';
+import { EnemyRespawnScheduler } from './enemyRespawnScheduler.js';
+import { EnemyStore } from './enemyStore.js';
 
 /**
  * Manages the lifecycle and respawn timings for ambient enemy actors.
@@ -9,33 +13,17 @@ export class EnemyManager {
    */
   constructor({ bounds }) {
     this.bounds = bounds;
-    /** @type {Map<string, import('./enemyLifecycle.js').EnemyActor>} */
-    this.enemies = new Map();
-    /** @type {Map<string, Array<{ delay: number }>>} */
-    this.respawnQueues = new Map();
-    this.spawnRules = [
-      {
-        type: ENEMY_TYPES.SKELETON,
-        speed: 36,
-        attackRange: 110,
-        attackCooldown: 3.4,
-        respawnDelay: 6.5,
+    this.store = new EnemyStore();
+    this.respawnScheduler = new EnemyRespawnScheduler();
+    this.spawnRules = DEFAULT_ENEMY_SPAWN_RULES;
+    this.populationBalancer = new EnemyPopulationBalancer({
+      spawnRules: this.spawnRules,
+      store: this.store,
+      scheduler: this.respawnScheduler,
+      spawnEnemy: (rule) => {
+        this.spawnEnemy(rule);
       },
-      {
-        type: ENEMY_TYPES.ZOMBIE,
-        speed: 24,
-        attackRange: 95,
-        attackCooldown: 2.6,
-        respawnDelay: 5.2,
-      },
-      {
-        type: ENEMY_TYPES.CREEPER,
-        speed: 30,
-        attackRange: 88,
-        attackCooldown: 3.8,
-        respawnDelay: 7.1,
-      },
-    ];
+    });
   }
 
   /**
@@ -57,12 +45,17 @@ export class EnemyManager {
    * }} payload Frame update payload.
    */
   update({ delta, players, onAttack }) {
+    if (!this.hasValidBounds()) {
+      return;
+    }
+
     const playerCount = Array.isArray(players) ? players.length : 0;
+    const desired = this.resolveDesiredCount(playerCount);
 
-    this.handleRespawns(delta, playerCount);
-    this.ensurePopulation(playerCount);
+    this.processRespawns(delta, desired);
+    this.populationBalancer.ensure(desired);
 
-    for (const enemy of this.enemies.values()) {
+    for (const enemy of this.store.list()) {
       const attack = stepEnemy(enemy, players, this.bounds, delta);
       if (attack && typeof onAttack === 'function') {
         onAttack({ enemy, player: attack.target });
@@ -76,7 +69,7 @@ export class EnemyManager {
    * @returns {import('./enemyLifecycle.js').EnemyActor[]} Enemy collection.
    */
   getEnemies() {
-    return Array.from(this.enemies.values());
+    return this.store.list();
   }
 
   /**
@@ -85,18 +78,15 @@ export class EnemyManager {
    * @param {string} id Enemy identifier.
    */
   handleDefeat(id) {
-    const enemy = this.enemies.get(id);
+    const enemy = this.store.remove(id);
     if (!enemy) {
       return;
     }
-    this.enemies.delete(id);
-    const rule = this.spawnRules.find((item) => item.type === enemy.variant);
+    const rule = this.resolveRule(enemy.variant);
     if (!rule) {
       return;
     }
-    const queue = this.respawnQueues.get(rule.type) ?? [];
-    queue.push({ delay: rule.respawnDelay });
-    this.respawnQueues.set(rule.type, queue);
+    this.respawnScheduler.enqueue(rule.type, rule.respawnDelay);
   }
 
   /**
@@ -106,12 +96,7 @@ export class EnemyManager {
    * @returns {import('./enemyLifecycle.js').EnemyActor | null} Matching enemy.
    */
   findEnemy(predicate) {
-    for (const enemy of this.enemies.values()) {
-      if (predicate(enemy)) {
-        return enemy;
-      }
-    }
-    return null;
+    return this.store.find(predicate);
   }
 
   /**
@@ -120,56 +105,32 @@ export class EnemyManager {
    * @param {number} playerCount Total number of active players.
    */
   ensurePopulation(playerCount = 0) {
-    if (!this.bounds || this.bounds.width === 0 || this.bounds.height === 0) {
+    if (!this.hasValidBounds()) {
       return;
     }
-
     const desired = this.resolveDesiredCount(playerCount);
-
-    for (const rule of this.spawnRules) {
-      this.trimExcess(rule.type, desired);
-
-      const activeCount = this.countActive(rule.type);
-      const queued = this.respawnQueues.get(rule.type)?.length ?? 0;
-      const deficit = desired - (activeCount + queued);
-      if (deficit <= 0) {
-        continue;
-      }
-      for (let i = 0; i < deficit; i += 1) {
-        this.spawnEnemy(rule);
-      }
-    }
+    this.populationBalancer.ensure(desired);
   }
 
   /**
    * Processes respawn queues while respecting the desired population cap.
    *
    * @param {number} delta Delta time in seconds.
-   * @param {number} playerCount Total number of active players.
+   * @param {number} desired Desired amount per enemy type.
    * @private
    */
-  handleRespawns(delta, playerCount) {
-    const desired = this.resolveDesiredCount(playerCount);
-
-    for (const [type, queue] of this.respawnQueues.entries()) {
-      if (!queue.length) {
-        continue;
-      }
-      const remaining = [];
-      for (const item of queue) {
-        const nextDelay = item.delay - delta;
-        const canSpawn = nextDelay <= 0 && this.countActive(type) < desired;
-        if (canSpawn) {
-          const rule = this.spawnRules.find((entry) => entry.type === type);
-          if (rule) {
-            this.spawnEnemy(rule);
-          }
-          continue;
+  processRespawns(delta, desired) {
+    this.respawnScheduler.process({
+      delta,
+      desiredCount: desired,
+      countActive: (type) => this.store.countByType(type),
+      spawn: (type) => {
+        const rule = this.resolveRule(type);
+        if (rule) {
+          this.spawnEnemy(rule);
         }
-        remaining.push({ delay: Math.max(nextDelay, 0) });
-      }
-      this.respawnQueues.set(type, remaining);
-    }
+      },
+    });
   }
 
   /** @private */
@@ -184,43 +145,18 @@ export class EnemyManager {
       },
       this.bounds,
     );
-    this.enemies.set(enemy.id, enemy);
+    this.store.add(enemy);
     return enemy;
   }
 
   /** @private */
-  countActive(type) {
-    let count = 0;
-    for (const enemy of this.enemies.values()) {
-      if (enemy.variant === type) {
-        count += 1;
-      }
-    }
-    return count;
+  resolveRule(type) {
+    return this.spawnRules.find((entry) => entry.type === type) ?? null;
   }
 
   /** @private */
-  trimExcess(type, desired) {
-    const active = [];
-    for (const enemy of this.enemies.values()) {
-      if (enemy.variant === type) {
-        active.push(enemy);
-      }
-    }
-
-    const excess = active.length - desired;
-    if (excess <= 0) {
-      if (desired === 0) {
-        this.respawnQueues.set(type, []);
-      }
-      return;
-    }
-
-    const toRemove = active.slice(0, excess);
-    for (const enemy of toRemove) {
-      this.enemies.delete(enemy.id);
-    }
-    this.respawnQueues.set(type, []);
+  hasValidBounds() {
+    return Boolean(this.bounds && this.bounds.width > 0 && this.bounds.height > 0);
   }
 
   /** @private */

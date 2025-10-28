@@ -10,7 +10,7 @@ const STORAGE_KEY = 'dashboard.password.authorisations';
 export class PasswordSession {
   constructor(storage = resolveStorage()) {
     this.storage = storage;
-    this.authorisedHashes = this.loadAuthorisedHashes();
+    this.authorisedEntries = this.loadAuthorisedEntries();
   }
 
   /**
@@ -25,32 +25,52 @@ export class PasswordSession {
       return false;
     }
 
-    return this.authorisedHashes[scope] === expectedHash;
+    const entry = this.authorisedEntries[scope];
+    return Boolean(entry?.hash) && entry.hash === expectedHash;
   }
 
   /**
-   * Stores the authorisation hash for the given scope when storage is available.
+   * Stores the authorisation hash and secret for the given scope when storage is available.
    *
    * @param {string} scope Password scope identifier.
-   * @param {string} hash Hash corresponding to the accepted secret.
+   * @param {{ hash: string, secret: string }} payload Persisted session payload.
    * @returns {void}
    */
-  markAuthorised(scope, hash) {
-    if (!hash) {
+  markAuthorised(scope, { hash, secret }) {
+    if (!scope) {
       return;
     }
 
-    this.authorisedHashes[scope] = hash;
-    this.persistAuthorisedHashes();
+    const normalisedHash = typeof hash === 'string' ? hash : '';
+    const normalisedSecret = typeof secret === 'string' ? secret : '';
+
+    if (!normalisedHash && !normalisedSecret) {
+      return;
+    }
+
+    this.authorisedEntries[scope] = { hash: normalisedHash, secret: normalisedSecret };
+    this.persistAuthorisedEntries();
   }
 
   /**
-   * Provides a snapshot of the stored authorisation hashes.
+   * Provides a snapshot of the stored authorisation entries.
    *
-   * @returns {Record<string, string>} Copy of the persisted authorisation mapping.
+   * @returns {Record<string, { hash: string, secret: string }>} Copy of the persisted authorisation mapping.
    */
   getAuthorisedSnapshot() {
-    return { ...this.authorisedHashes };
+    return Object.fromEntries(
+      Object.entries(this.authorisedEntries).map(([scope, entry]) => [scope, { ...entry }]),
+    );
+  }
+
+  /**
+   * Retrieves the stored secret (plain password) associated with the requested scope.
+   *
+   * @param {string} scope Password scope identifier.
+   * @returns {string} Stored secret or an empty string when unavailable.
+   */
+  getStoredSecret(scope) {
+    return this.authorisedEntries[scope]?.secret ?? '';
   }
 
   /**
@@ -60,15 +80,15 @@ export class PasswordSession {
    * @returns {void}
    */
   clearAuthorised(scope) {
-    if (!scope || !(scope in this.authorisedHashes)) {
+    if (!scope || !(scope in this.authorisedEntries)) {
       return;
     }
 
-    delete this.authorisedHashes[scope];
-    this.persistAuthorisedHashes();
+    delete this.authorisedEntries[scope];
+    this.persistAuthorisedEntries();
   }
 
-  loadAuthorisedHashes() {
+  loadAuthorisedEntries() {
     if (!this.storage) {
       return {};
     }
@@ -84,20 +104,20 @@ export class PasswordSession {
         return {};
       }
 
-      return parsed;
+      return normaliseEntries(parsed);
     } catch (error) {
       console.warn('Unable to read password authorisation state', error);
       return {};
     }
   }
 
-  persistAuthorisedHashes() {
+  persistAuthorisedEntries() {
     if (!this.storage) {
       return;
     }
 
     try {
-      this.storage.setItem(STORAGE_KEY, JSON.stringify(this.authorisedHashes));
+      this.storage.setItem(STORAGE_KEY, JSON.stringify(this.authorisedEntries));
     } catch (error) {
       console.warn('Unable to persist password authorisation state', error);
     }
@@ -124,4 +144,33 @@ function resolveStorage() {
  */
 export function createPasswordSession() {
   return new PasswordSession();
+}
+
+function normaliseEntries(rawEntries) {
+  return Object.entries(rawEntries).reduce((accumulator, [scope, value]) => {
+    const entry = normaliseEntry(value);
+    if (entry) {
+      accumulator[scope] = entry;
+    }
+    return accumulator;
+  }, {});
+}
+
+function normaliseEntry(value) {
+  if (typeof value === 'string') {
+    return { hash: value, secret: '' };
+  }
+
+  if (typeof value !== 'object' || value === null) {
+    return null;
+  }
+
+  const hash = typeof value.hash === 'string' ? value.hash : '';
+  const secret = typeof value.secret === 'string' ? value.secret : '';
+
+  if (!hash && !secret) {
+    return null;
+  }
+
+  return { hash, secret };
 }

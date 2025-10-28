@@ -59,9 +59,9 @@ footer {
 
 .footer {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  min-height: 32px;
+  gap: 8px;
 }
 
 .footer__title {
@@ -70,24 +70,24 @@ footer {
 
 .floating-github {
   position: fixed;
-  top: 18px;
-  right: 18px;
+  top: 20px;
+  right: 20px;
   display: inline-flex;
-  color: rgba(217, 226, 244, 0.9);
+  color: rgba(217, 226, 244, 0.92);
   text-decoration: none;
   line-height: 0;
   transition: transform 0.2s ease-in-out, color 0.2s ease-in-out;
-  z-index: 10;
+  z-index: 20;
 }
 
 .floating-github:hover,
 .floating-github:focus-visible {
-  color: #f0f5ff;
+  color: #f5f9ff;
   transform: translateY(-1px);
 }
 
 .floating-github:focus-visible {
-  outline: 2px solid #f0f5ff;
+  outline: 2px solid #f5f9ff;
   outline-offset: 4px;
 }
 
@@ -95,7 +95,6 @@ footer {
   width: 28px;
   height: 28px;
   fill: currentColor;
-  overflow: visible;
 }
 
 .visually-hidden {
@@ -156,40 +155,14 @@ main {
   }
 }
 
-@media (max-width: 520px) {
-  main {
-    padding: 16px 12px 4px;
-  }
-
-  .control-card {
-    padding: 20px 16px;
-    gap: 16px;
-  }
-
-  .torch-container {
-    padding: 8px 0 0;
-  }
-
-  .downloads {
-    gap: 12px;
-    font-size: 13px;
-  }
-
-  footer {
-    padding: 12px 16px 14px;
-  }
-
-  .footer {
-    gap: 6px;
+@media (max-width: 480px) {
+  .floating-github__icon {
+    width: 24px;
+    height: 24px;
   }
 
   .floating-github {
     top: 12px;
     right: 12px;
-  }
-
-  .floating-github__icon {
-    width: 24px;
-    height: 24px;
   }
 }

@@ -17,6 +17,7 @@ export function createStatusCoordinator(
   let statusStreamSubscription = null;
   let statusSnapshotPromise = null;
   let fallbackPollingId = null;
+  let reconnectInFlight = false;
 
   const handleStreamOpen = () => {
     stopFallbackPolling();
@@ -57,16 +58,39 @@ export function createStatusCoordinator(
     stopFallbackPolling();
   };
 
+  const shouldAttemptReconnect = () => {
+    return !statusStreamSubscription || !statusStreamSubscription.source;
+  };
+
+  const scheduleReconnectAttempt = () => {
+    if (!shouldAttemptReconnect() || reconnectInFlight) {
+      return;
+    }
+
+    reconnectInFlight = true;
+    Promise.resolve()
+      .then(() => {
+        if (shouldAttemptReconnect()) {
+          connect();
+        }
+      })
+      .finally(() => {
+        reconnectInFlight = false;
+      });
+  };
+
   const startFallbackPolling = () => {
     if (fallbackPollingId) {
       return;
     }
 
     handlers.onFallbackStart?.();
+    scheduleReconnectAttempt();
     fallbackPollingId = setIntervalFn(() => {
       requestSnapshot().catch((error) => {
         logger.error('Unable to refresh status snapshot during fallback polling', error);
       });
+      scheduleReconnectAttempt();
       handlers.onFallbackTick?.();
     }, fallbackIntervalMs);
   };

@@ -20,7 +20,8 @@ export function createDomReferences() {
   const installModalOverlay = document.querySelector('[data-role="install-modal-overlay"]');
   const installModalTitle = document.querySelector('[data-role="install-modal-title"]');
   const installModalBody = document.querySelector('[data-role="install-modal-body"]');
-  const footerElement = document.querySelector('[data-role="footer"]');
+  const footerTextElement = document.querySelector('[data-role="footer-text"]');
+  const footerGithubLink = document.querySelector('[data-role="footer-github-link"]');
   const downloadsLabel = document.querySelector('[data-role="downloads-label"]');
   const modsLink = document.querySelector('[data-role="download-mods"]');
   const neoforgeLink = document.querySelector('[data-role="download-neoforge"]');
@@ -51,7 +52,8 @@ export function createDomReferences() {
     installModalOverlay,
     installModalTitle,
     installModalBody,
-    footerElement,
+    footerTextElement,
+    footerGithubLink,
     downloadsLabel,
     modsLink,
     neoforgeLink,

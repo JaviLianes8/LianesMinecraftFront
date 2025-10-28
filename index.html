@@ -15,7 +15,7 @@
         <div class="control-card__header">
           <h1 id="mainTitle" class="control-card__title">
             <button class="status-button status-undefined control-card__title-button" data-role="status-button" type="button" aria-live="polite" aria-disabled="true" disabled>
-              Lianes8 server Estado: Desconocido
+              Desconocido
             </button>
           </h1>
         </div>
@@ -91,7 +91,19 @@
         </form>
       </div>
     </div>
-    <footer data-role="footer">Minecraft server</footer>
+    <footer data-role="footer">
+      <span data-role="footer-text">Lianes8 Minecraft Server</span>
+      <a
+        href="https://github.com/JaviLianes8/LianesMinecraftFront"
+        data-role="footer-github-link"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Repositorio de GitHub"
+        title="Repositorio de GitHub"
+      >
+        <img src="img/github.png" alt="GitHub" class="footer__github-icon" />
+      </a>
+    </footer>
     <script src="./runtime-config.js"></script>
     <script type="module">
       import { createDashboardApp } from './scripts/app/dashboardApp.js';

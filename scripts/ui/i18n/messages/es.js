@@ -8,8 +8,8 @@
  */
 export const esMessages = {
   'ui.title': 'Lianes8 Server',
-  'ui.footer': 'Minecraft server',
-  'ui.statusButton.prefix': 'Lianes8 server Estado',
+  'ui.footer': 'Lianes8 Minecraft Server',
+  'ui.footer.githubLink.label': 'Repositorio en GitHub',
   'ui.statusButton.label.UNKNOWN': 'Desconocido',
   'ui.statusButton.label.ONLINE': 'En línea',
   'ui.statusButton.label.OFFLINE': 'Fuera de línea',

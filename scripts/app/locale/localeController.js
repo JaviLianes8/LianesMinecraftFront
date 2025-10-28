@@ -44,6 +44,8 @@ export class LocaleController {
       installModalTitle,
       installModalBody,
       footerElement,
+      footerTitle,
+      footerLink,
     } = this.dom;
 
     const locale = getActiveLocale();
@@ -96,8 +98,29 @@ export class LocaleController {
       installModalBody.innerHTML = this.translate('ui.installation.popup.body');
     }
 
+    if (footerTitle) {
+      footerTitle.textContent = this.translate('ui.footer.title');
+    }
+
+    if (footerLink) {
+      const label = this.translate('ui.footer.githubLabel');
+      footerLink.setAttribute('aria-label', label);
+      footerLink.setAttribute('title', label);
+      if (!footerLink.textContent.trim()) {
+        const hiddenLabel = document.createElement('span');
+        hiddenLabel.className = 'visually-hidden';
+        hiddenLabel.textContent = label;
+        footerLink.prepend(hiddenLabel);
+      } else {
+        const hiddenLabel = footerLink.querySelector('.visually-hidden');
+        if (hiddenLabel) {
+          hiddenLabel.textContent = label;
+        }
+      }
+    }
+
     if (footerElement) {
-      footerElement.textContent = this.translate('ui.footer');
+      footerElement.setAttribute('data-locale', locale);
     }
   }
 

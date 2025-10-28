@@ -44,6 +44,30 @@ export class PasswordSession {
     this.persistAuthorisedHashes();
   }
 
+  /**
+   * Provides a snapshot of the stored authorisation hashes.
+   *
+   * @returns {Record<string, string>} Copy of the persisted authorisation mapping.
+   */
+  getAuthorisedSnapshot() {
+    return { ...this.authorisedHashes };
+  }
+
+  /**
+   * Removes the stored authorisation for the requested scope.
+   *
+   * @param {string} scope Password scope identifier to clear.
+   * @returns {void}
+   */
+  clearAuthorised(scope) {
+    if (!scope || !(scope in this.authorisedHashes)) {
+      return;
+    }
+
+    delete this.authorisedHashes[scope];
+    this.persistAuthorisedHashes();
+  }
+
   loadAuthorisedHashes() {
     if (!this.storage) {
       return {};

@@ -24,6 +24,7 @@ export class PasswordPrompt {
     this.verifier = verifier;
     this.session = session;
     this.authorisedScopes = new Set();
+    this.restoreRememberedScopes();
   }
 
   /**
@@ -126,6 +127,30 @@ export class PasswordPrompt {
     if (remember) {
       this.session?.markAuthorised(scope, hash);
     }
+  }
+
+  /**
+   * Restores remembered authorisations from the persisted session data.
+   *
+   * @returns {void}
+   */
+  restoreRememberedScopes() {
+    const stored = this.session?.getAuthorisedSnapshot?.();
+    if (!stored) {
+      return;
+    }
+
+    Object.entries(stored).forEach(([scope, storedHash]) => {
+      const expectedHash = this.verifier.getExpectedHash(scope);
+      if (expectedHash && storedHash === expectedHash) {
+        this.authorisedScopes.add(scope);
+        return;
+      }
+
+      if (storedHash && this.session?.clearAuthorised) {
+        this.session.clearAuthorised(scope);
+      }
+    });
   }
 }
 

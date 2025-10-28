@@ -63,7 +63,7 @@ export function createPlayersStage({ container, initialPlayers = [] } = {}) {
       clampActorToBounds(actor, size);
     }
     enemyManager.setBounds(size);
-    enemyManager.ensurePopulation();
+    enemyManager.ensurePopulation(actors.size);
   };
 
   const resizeObserver = attachResizeObserver(container, resizeHandler);
@@ -178,7 +178,7 @@ export function createPlayersStage({ container, initialPlayers = [] } = {}) {
       }
     }
 
-    enemyManager.ensurePopulation();
+    enemyManager.ensurePopulation(snapshot.length);
   }
 }
 

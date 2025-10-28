@@ -1,5 +1,5 @@
 import { SPRITE_HEIGHT, SPRITE_WIDTH, WAVE_AMPLITUDE } from '../constants.js';
-import { resolveSkinRenderer } from './skins/index.js';
+import { resolveEnemySkinRenderer, resolvePlayerSkinRenderer } from './skins/index.js';
 
 /**
  * Draws an actor shadow, sprite and label within the provided context.
@@ -13,8 +13,10 @@ export function drawActor(ctx, actor) {
   const y = actor.y + Math.sin(actor.wave) * WAVE_AMPLITUDE;
 
   drawShadow(ctx, x, y, scale);
-  drawBody(ctx, x, y, scale, actor.name);
-  drawLabel(ctx, x, y, scale, actor.name);
+  drawBody(ctx, x, y, scale, actor);
+  if (actor.type !== 'enemy') {
+    drawLabel(ctx, x, y, scale, actor.name);
+  }
 }
 
 /**
@@ -31,10 +33,13 @@ function drawShadow(ctx, x, y, scale) {
 }
 
 /**
- * Draws the sprite body using the resolved skin renderer.
+ * Draws the sprite body using the resolved skin renderer for the actor type.
  */
-function drawBody(ctx, x, y, scale, name) {
-  const renderer = resolveSkinRenderer(name);
+function drawBody(ctx, x, y, scale, actor) {
+  const renderer =
+    actor.type === 'enemy'
+      ? resolveEnemySkinRenderer(actor.variant)
+      : resolvePlayerSkinRenderer(actor.name);
   renderer(ctx, x, y, scale);
 }
 

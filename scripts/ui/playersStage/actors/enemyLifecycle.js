@@ -27,7 +27,7 @@ export const ENEMY_TYPES = {
  *
  * @param {{
  *   id: string,
- *   name: string,
+ *   name?: string,
  *   variant: keyof typeof ENEMY_TYPES,
  *   speed: number,
  *   attackRange: number,
@@ -43,7 +43,7 @@ export function createEnemy(rule, size) {
 
   return {
     id: rule.id,
-    name: rule.name,
+    name: typeof rule.name === 'string' ? rule.name : '',
     type: 'enemy',
     variant: rule.variant,
     x: position.x,

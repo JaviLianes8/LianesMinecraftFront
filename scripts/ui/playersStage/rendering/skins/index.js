@@ -19,13 +19,18 @@ const PLAYER_SKINS = new Map([
   ['zombie', drawMinecraftZombieSkin],
 ]);
 
+const ENEMY_SKINS = new Map([
+  ['skeleton', drawMinecraftSkeletonSkin],
+  ['zombie', drawMinecraftZombieSkin],
+]);
+
 /**
  * Resolves the appropriate skin renderer for a given player name.
  *
  * @param {string} name Player name.
  * @returns {(ctx: CanvasRenderingContext2D, x: number, y: number, scale: number) => void} Skin renderer.
  */
-export function resolveSkinRenderer(name) {
+export function resolvePlayerSkinRenderer(name) {
   if (typeof name !== 'string') {
     return drawDefaultSkin;
   }
@@ -36,4 +41,23 @@ export function resolveSkinRenderer(name) {
   }
 
   return PLAYER_SKINS.get(key) ?? drawDefaultSkin;
+}
+
+/**
+ * Resolves the appropriate skin renderer for a given enemy variant.
+ *
+ * @param {string | undefined} variant Enemy variant identifier.
+ * @returns {(ctx: CanvasRenderingContext2D, x: number, y: number, scale: number) => void} Skin renderer.
+ */
+export function resolveEnemySkinRenderer(variant) {
+  if (typeof variant !== 'string') {
+    return drawMinecraftZombieSkin;
+  }
+
+  const key = variant.trim().toLowerCase();
+  if (!key) {
+    return drawMinecraftZombieSkin;
+  }
+
+  return ENEMY_SKINS.get(key) ?? drawMinecraftZombieSkin;
 }

@@ -16,7 +16,6 @@ export class EnemyManager {
     this.spawnRules = [
       {
         type: ENEMY_TYPES.SKELETON,
-        displayName: 'Skeleton',
         speed: 36,
         attackRange: 110,
         attackCooldown: 3.4,
@@ -24,7 +23,6 @@ export class EnemyManager {
       },
       {
         type: ENEMY_TYPES.ZOMBIE,
-        displayName: 'Zombie',
         speed: 24,
         attackRange: 95,
         attackCooldown: 2.6,
@@ -52,8 +50,10 @@ export class EnemyManager {
    * }} payload Frame update payload.
    */
   update({ delta, players, onAttack }) {
-    this.handleRespawns(delta);
-    this.ensurePopulation();
+    const playerCount = Array.isArray(players) ? players.length : 0;
+
+    this.handleRespawns(delta, playerCount);
+    this.ensurePopulation(playerCount);
 
     for (const enemy of this.enemies.values()) {
       const attack = stepEnemy(enemy, players, this.bounds, delta);
@@ -108,41 +108,60 @@ export class EnemyManager {
   }
 
   /**
-   * Ensures at least one instance for every configured enemy type is present.
+   * Adjusts the population to maintain one enemy of each type per active player.
+   *
+   * @param {number} playerCount Total number of active players.
    */
-  ensurePopulation() {
+  ensurePopulation(playerCount = 0) {
     if (!this.bounds || this.bounds.width === 0 || this.bounds.height === 0) {
       return;
     }
 
+    const desired = this.resolveDesiredCount(playerCount);
+
     for (const rule of this.spawnRules) {
+      this.trimExcess(rule.type, desired);
+
       const activeCount = this.countActive(rule.type);
       const queued = this.respawnQueues.get(rule.type)?.length ?? 0;
-      if (activeCount + queued > 0) {
+      const deficit = desired - (activeCount + queued);
+      if (deficit <= 0) {
         continue;
       }
-      this.spawnEnemy(rule);
+      for (let i = 0; i < deficit; i += 1) {
+        this.spawnEnemy(rule);
+      }
     }
   }
 
-  /** @private */
-  handleRespawns(delta) {
+  /**
+   * Processes respawn queues while respecting the desired population cap.
+   *
+   * @param {number} delta Delta time in seconds.
+   * @param {number} playerCount Total number of active players.
+   * @private
+   */
+  handleRespawns(delta, playerCount) {
+    const desired = this.resolveDesiredCount(playerCount);
+
     for (const [type, queue] of this.respawnQueues.entries()) {
       if (!queue.length) {
         continue;
       }
-      queue.forEach((item) => {
-        item.delay -= delta;
-      });
-      const ready = queue.filter((item) => item.delay <= 0);
-      const pending = queue.filter((item) => item.delay > 0);
-      this.respawnQueues.set(type, pending);
-      if (ready.length > 0) {
-        const rule = this.spawnRules.find((entry) => entry.type === type);
-        if (rule) {
-          this.spawnEnemy(rule);
+      const remaining = [];
+      for (const item of queue) {
+        const nextDelay = item.delay - delta;
+        const canSpawn = nextDelay <= 0 && this.countActive(type) < desired;
+        if (canSpawn) {
+          const rule = this.spawnRules.find((entry) => entry.type === type);
+          if (rule) {
+            this.spawnEnemy(rule);
+          }
+          continue;
         }
+        remaining.push({ delay: Math.max(nextDelay, 0) });
       }
+      this.respawnQueues.set(type, remaining);
     }
   }
 
@@ -151,7 +170,6 @@ export class EnemyManager {
     const enemy = createEnemy(
       {
         id: `${rule.type}-${Date.now().toString(36)}-${Math.floor(Math.random() * 1000)}`,
-        name: rule.displayName,
         variant: rule.type,
         speed: rule.speed,
         attackRange: rule.attackRange,
@@ -172,5 +190,37 @@ export class EnemyManager {
       }
     }
     return count;
+  }
+
+  /** @private */
+  trimExcess(type, desired) {
+    const active = [];
+    for (const enemy of this.enemies.values()) {
+      if (enemy.variant === type) {
+        active.push(enemy);
+      }
+    }
+
+    const excess = active.length - desired;
+    if (excess <= 0) {
+      if (desired === 0) {
+        this.respawnQueues.set(type, []);
+      }
+      return;
+    }
+
+    const toRemove = active.slice(0, excess);
+    for (const enemy of toRemove) {
+      this.enemies.delete(enemy.id);
+    }
+    this.respawnQueues.set(type, []);
+  }
+
+  /** @private */
+  resolveDesiredCount(playerCount) {
+    if (!Number.isFinite(playerCount) || playerCount <= 0) {
+      return 0;
+    }
+    return Math.max(0, Math.floor(playerCount));
   }
 }

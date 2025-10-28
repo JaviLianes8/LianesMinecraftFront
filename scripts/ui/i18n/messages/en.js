@@ -74,6 +74,7 @@ export const enMessages = {
   'info.stream.error': 'Could not connect to the live status stream. Retrying…',
   'info.stream.reconnecting': 'Lost the live status stream. Attempting to reconnect…',
   'info.stream.unsupported': 'Your browser does not support live updates. Falling back to 30 s checks.',
+  'info.initial.loading': 'Fetching current status and connected players…',
   'info.online': 'Server is online. You can request STOP if needed.',
   'info.offline': 'Server is offline. You can request START.',
   'info.error': 'The server reported an error. Review the logs.',

@@ -89,7 +89,7 @@ export function createDashboardApp() {
       if (!authorised) {
         return;
       }
-      controller.initialise();
+      await controller.initialise();
     },
     controller,
     passwordPrompt,

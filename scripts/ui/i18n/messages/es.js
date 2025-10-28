@@ -74,6 +74,7 @@ export const esMessages = {
   'info.stream.error': 'No se pudo conectar al flujo de estado. Reintentando…',
   'info.stream.reconnecting': 'Conexión con el flujo perdida. Intentando reconectar…',
   'info.stream.unsupported': 'Tu navegador no admite actualizaciones en vivo. Consultando cada 30 s.',
+  'info.initial.loading': 'Consultando el estado y los jugadores actuales…',
   'info.online': 'Servidor en línea. Puedes solicitar STOP si lo necesitas.',
   'info.offline': 'Servidor detenido. Puedes solicitar START.',
   'info.error': 'El servidor informó de un error. Revisa los registros.',

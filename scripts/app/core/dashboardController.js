@@ -32,11 +32,11 @@ export class DashboardController {
     this.passwordPrompt = passwordPrompt ?? null;
 
     this.currentState = ServerLifecycleState.UNKNOWN;
-    this.currentStatusViewState = StatusViewState.UNKNOWN;
+    this.currentStatusViewState = StatusViewState.CHECKING;
     this.statusEligible = this.busy = false;
     this.hasReceivedStatusUpdate = this.streamHasError = false;
   }
-  initialise() {
+  async initialise() {
     this.localeController.applyLocaleToStaticContent();
     this.controlPanelPresenter.cacheDefaultButtonLabels();
     this.applyStatusView(this.currentStatusViewState);
@@ -51,17 +51,28 @@ export class DashboardController {
       this.updateControlAvailability();
       this.passwordPrompt?.refreshActiveTexts();
     });
-    this.infoMessageService.render({ key: 'info.stream.connecting', state: InfoViewState.PENDING });
+    this.infoMessageService.render({ key: 'info.initial.loading', state: InfoViewState.PENDING });
     this.updateControlAvailability();
     this.attachEventListeners();
 
+    await this.loadInitialSnapshots();
+
     this.statusCoordinator.connect();
     this.playersCoordinator.connect();
-    this.statusCoordinator.requestSnapshot();
-    this.playersCoordinator.requestSnapshot();
     if (typeof window !== 'undefined') {
       window.addEventListener('beforeunload', () => this.cleanup(), { once: true });
     }
+  }
+  /**
+   * Retrieves the initial status and players snapshots before enabling live updates.
+   *
+   * @returns {Promise<void>} Completes once both snapshots have been processed.
+   */
+  async loadInitialSnapshots() {
+    await Promise.all([
+      this.statusCoordinator.requestSnapshot(),
+      this.playersCoordinator.requestSnapshot(),
+    ]);
   }
   attachEventListeners() {
     const { startButton, stopButton } = this.dom;

@@ -12,6 +12,7 @@ import {
  * @typedef {Object} Actor
  * @property {string} id Unique identifier.
  * @property {string} name Sanitised player name.
+ * @property {'player' | 'enemy'} type Actor archetype.
  * @property {number} x Horizontal position.
  * @property {number} y Vertical position.
  * @property {number} vx Horizontal velocity.
@@ -37,6 +38,7 @@ export function createActor(player, size) {
   return {
     id: player.id,
     name: player.name,
+    type: 'player',
     x: position.x,
     y: position.y,
     vx: velocity.vx,

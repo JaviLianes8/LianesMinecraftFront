@@ -1,13 +1,27 @@
 /* Base theme tokens and layout primitives for the control dashboard */
 :root {
-  --bg: #0e0f14;
-  --panel: #141821;
-  --text: #e8e6e3;
-  --ok: #23d18b;
-  --bad: #ff4d4d;
-  --border: #262b36;
-  --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
-  --glow-on: 0 0 18px rgba(255, 170, 64, 0.55), 0 0 55px rgba(255, 120, 32, 0.35);
+  --bg: #07120a;
+  --panel: linear-gradient(160deg, rgba(18, 41, 20, 0.95), rgba(11, 26, 14, 0.96));
+  --text: #f2f6ed;
+  --ok: #67c265;
+  --bad: #ff6f61;
+  --border: #1f3a1d;
+  --shadow: 0 18px 46px rgba(4, 8, 4, 0.75);
+  --glow-on: 0 0 18px rgba(238, 192, 99, 0.55), 0 0 55px rgba(178, 122, 44, 0.35);
+  --pixel-grid: repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.03) 0,
+      rgba(255, 255, 255, 0.03) 6px,
+      transparent 6px,
+      transparent 12px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.025) 0,
+      rgba(255, 255, 255, 0.025) 6px,
+      transparent 6px,
+      transparent 12px
+    );
 }
 
 /* Global document setup for full-height layout and readable typography */
@@ -15,8 +29,12 @@ html,
 body {
   height: 100%;
   margin: 0;
-  font-family: 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-  background: radial-gradient(1300px 700px at 50% 10%, #161a24 0%, #0d1018 60%, var(--bg) 100%);
+  font-family: 'Segoe UI', 'Trebuchet MS', 'Lucida Grande', sans-serif;
+  background:
+    linear-gradient(180deg, rgba(21, 52, 28, 0.96), rgba(6, 22, 11, 0.98)),
+    var(--pixel-grid),
+    radial-gradient(1200px 800px at 50% 8%, rgba(34, 76, 42, 0.35), transparent 70%),
+    var(--bg);
   color: var(--text);
 }
 

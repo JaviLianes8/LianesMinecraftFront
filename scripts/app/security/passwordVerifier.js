@@ -10,6 +10,7 @@ import { getPasswordSecrets } from '../support/passwordSecretsGateway.js';
 export class PasswordVerifier {
   constructor(secretsGateway = getPasswordSecrets) {
     this.secretsGateway = secretsGateway;
+    this.cachedSecrets = null;
   }
 
   /**
@@ -18,11 +19,11 @@ export class PasswordVerifier {
    * @param {Object} options Verification options.
    * @param {string} options.scope Identifier of the password scope. Supported: "start" | "stop".
    * @param {string} options.password Plain text password provided by the user.
-   * @returns {Promise<{ authorised: boolean }>} Result describing whether the password is valid.
+   * @returns {Promise<{ authorised: boolean, scopeHash: string }>} Result describing whether the password is valid
+   * and the hash associated with the authorised scope.
    */
   async verify({ scope, password }) {
-    const secrets = this.secretsGateway();
-    const entry = secrets[scope];
+    const entry = this.getSecret(scope);
     if (!entry?.hash || !entry?.salt) {
       console.warn(`Missing password configuration for scope: ${scope}`);
       return { authorised: false };
@@ -30,7 +31,31 @@ export class PasswordVerifier {
 
     const hash = await this.hashPassword(password, entry.salt);
     const authorised = this.timingSafeEqual(hash, entry.hash);
-    return { authorised };
+    return { authorised, scopeHash: entry.hash };
+  }
+
+  /**
+   * Provides the configured hash for the requested scope.
+   *
+   * @param {string} scope Password scope identifier.
+   * @returns {string} Hash associated with the scope or an empty string when missing.
+   */
+  getExpectedHash(scope) {
+    const entry = this.getSecret(scope);
+    return entry?.hash ?? '';
+  }
+
+  getSecret(scope) {
+    const secrets = this.getSecrets();
+    return secrets?.[scope];
+  }
+
+  getSecrets() {
+    if (!this.cachedSecrets) {
+      this.cachedSecrets = this.secretsGateway();
+    }
+
+    return this.cachedSecrets;
   }
 
   async hashPassword(password, salt) {

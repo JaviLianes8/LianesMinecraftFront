@@ -3,6 +3,7 @@
  */
 
 import { createPasswordVerifier } from './passwordVerifier.js';
+import { createPasswordSession } from './passwordSession.js';
 import { createPasswordDialog } from '../../ui/password/passwordDialogController.js';
 
 /**
@@ -15,11 +16,13 @@ export class PasswordPrompt {
    * Dialog controller responsible for UI interactions.
    * @param {(key: string) => string} options.translate Translation function resolving message keys.
    * @param {import('./passwordVerifier.js').PasswordVerifier} [options.verifier] Optional password verifier.
+   * @param {import('./passwordSession.js').PasswordSession} [options.session] Optional password session handler.
    */
-  constructor({ dialog, translate, verifier = createPasswordVerifier() }) {
+  constructor({ dialog, translate, verifier = createPasswordVerifier(), session = createPasswordSession() }) {
     this.dialog = dialog;
     this.translate = translate;
     this.verifier = verifier;
+    this.session = session;
     this.authorisedScopes = new Set();
   }
 
@@ -58,7 +61,8 @@ export class PasswordPrompt {
   }
 
   async ensureScope(scope, { remember = false } = {}) {
-    if (this.authorisedScopes.has(scope)) {
+    if (this.isScopeAuthorised(scope)) {
+      this.dialog?.close();
       return true;
     }
 
@@ -74,9 +78,7 @@ export class PasswordPrompt {
         this.dialog.setBusy(true);
         const result = await this.verifier.verify({ scope, password });
         if (result.authorised) {
-          if (remember) {
-            this.authorisedScopes.add(scope);
-          }
+          this.markScopeAuthorised(scope, { remember, hash: result.scopeHash });
           this.dialog.close();
           return true;
         }
@@ -101,6 +103,27 @@ export class PasswordPrompt {
       submitLabel: this.translate('ui.password.submit'),
       cancelLabel: this.translate('ui.password.cancel'),
     };
+  }
+
+  isScopeAuthorised(scope) {
+    if (this.authorisedScopes.has(scope)) {
+      return true;
+    }
+
+    const expectedHash = this.verifier.getExpectedHash(scope);
+    if (this.session?.isAuthorised(scope, expectedHash)) {
+      this.authorisedScopes.add(scope);
+      return true;
+    }
+
+    return false;
+  }
+
+  markScopeAuthorised(scope, { remember, hash }) {
+    this.authorisedScopes.add(scope);
+    if (remember) {
+      this.session?.markAuthorised(scope, hash);
+    }
   }
 }
 

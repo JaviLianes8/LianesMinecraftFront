@@ -21,6 +21,8 @@ export function createDomReferences() {
   const installModalTitle = document.querySelector('[data-role="install-modal-title"]');
   const installModalBody = document.querySelector('[data-role="install-modal-body"]');
   const footerElement = document.querySelector('[data-role="footer"]');
+  const footerTitle = document.querySelector('[data-role="footer-title"]');
+  const footerLink = document.querySelector('[data-role="footer-link"]');
   const downloadsLabel = document.querySelector('[data-role="downloads-label"]');
   const modsLink = document.querySelector('[data-role="download-mods"]');
   const neoforgeLink = document.querySelector('[data-role="download-neoforge"]');
@@ -52,6 +54,8 @@ export function createDomReferences() {
     installModalTitle,
     installModalBody,
     footerElement,
+    footerTitle,
+    footerLink,
     downloadsLabel,
     modsLink,
     neoforgeLink,

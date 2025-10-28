@@ -57,6 +57,50 @@ footer {
   font-size: 12px;
 }
 
+.footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.footer__title {
+  font-weight: 600;
+}
+
+.footer__github-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.2s ease-in-out;
+}
+
+.footer__github-link:focus-visible,
+.footer__github-link:hover {
+  color: #d9e2f4;
+}
+
+.footer__github-icon {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* Main container ensures the card stays centered on the viewport */
 main {
   display: grid;

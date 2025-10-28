@@ -54,10 +54,9 @@ const STATUS_CLASSES = {
  */
 export function renderStatus(button, torch, flame, state) {
   const labelKey = STATUS_LABEL_KEYS[state] ?? STATUS_LABEL_KEYS[StatusViewState.UNKNOWN];
-  const prefix = translate('ui.statusButton.prefix');
   const label = translate(labelKey);
-  button.textContent = `${prefix}: ${label}`;
-  button.setAttribute('aria-label', button.textContent);
+  button.textContent = label;
+  button.setAttribute('aria-label', label);
   button.dataset.viewState = state;
 
   button.classList.remove(...Object.values(STATUS_CLASSES));

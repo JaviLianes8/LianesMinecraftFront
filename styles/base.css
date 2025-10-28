@@ -84,6 +84,22 @@ footer {
 .top-bar__icon {
   width: 24px;
   height: 24px;
+  display: block;
+  filter: brightness(0) invert(1);
+}
+
+.footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+
+.footer__icon {
+  width: 20px;
+  height: 20px;
+  display: block;
+  filter: brightness(0) invert(1);
 }
 
 /* Main container ensures the card stays centered on the viewport */

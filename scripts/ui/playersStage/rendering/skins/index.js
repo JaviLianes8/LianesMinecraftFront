@@ -7,6 +7,7 @@ import { drawPandaSkin } from './pandaSkin.js';
 import { drawPeakyBlindersSkin } from './peakyBlindersSkin.js';
 import { drawMinecraftSkeletonSkin } from './minecraftSkeletonSkin.js';
 import { drawMinecraftZombieSkin } from './minecraftZombieSkin.js';
+import { drawMinecraftCreeperSkin } from './minecraftCreeperSkin.js';
 
 const PLAYER_SKINS = new Map([
   ['lianes8', drawLuffySkin],
@@ -17,11 +18,13 @@ const PLAYER_SKINS = new Map([
   ['alexconsta', drawEzioSkin],
   ['skeleton', drawMinecraftSkeletonSkin],
   ['zombie', drawMinecraftZombieSkin],
+  ['creeper', drawMinecraftCreeperSkin],
 ]);
 
 const ENEMY_SKINS = new Map([
   ['skeleton', drawMinecraftSkeletonSkin],
   ['zombie', drawMinecraftZombieSkin],
+  ['creeper', drawMinecraftCreeperSkin],
 ]);
 
 /**

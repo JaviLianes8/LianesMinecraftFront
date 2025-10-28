@@ -28,6 +28,13 @@ export class EnemyManager {
         attackCooldown: 2.6,
         respawnDelay: 5.2,
       },
+      {
+        type: ENEMY_TYPES.CREEPER,
+        speed: 30,
+        attackRange: 88,
+        attackCooldown: 3.8,
+        respawnDelay: 7.1,
+      },
     ];
   }
 

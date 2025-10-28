@@ -8,6 +8,7 @@ import { resolveActorCenter } from '../utils/actorMath.js';
 export const ENEMY_TYPES = {
   SKELETON: 'skeleton',
   ZOMBIE: 'zombie',
+  CREEPER: 'creeper',
 };
 
 /**
@@ -153,6 +154,9 @@ function resolveEnemyScale(height, variant) {
   }
   if (variant === ENEMY_TYPES.ZOMBIE) {
     return Math.min(4.4, base + 0.15);
+  }
+  if (variant === ENEMY_TYPES.CREEPER) {
+    return Math.min(4.2, base);
   }
   return base;
 }

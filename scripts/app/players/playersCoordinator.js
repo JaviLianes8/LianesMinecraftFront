@@ -17,6 +17,7 @@ export function createPlayersCoordinator(
   let playersStreamSubscription = null;
   let playersSnapshotPromise = null;
   let playersFallbackPollingId = null;
+  let reconnectInFlight = false;
 
   const cleanupStream = () => {
     if (playersStreamSubscription && typeof playersStreamSubscription.close === 'function') {
@@ -37,6 +38,7 @@ export function createPlayersCoordinator(
         handlers.onPlayers?.(snapshot);
       },
       onError: () => {
+        cleanupStream();
         startFallbackPolling();
         handlers.onStreamError?.();
       },
@@ -51,6 +53,27 @@ export function createPlayersCoordinator(
 
     playersStreamSubscription = subscription;
     stopFallbackPolling();
+  };
+
+  const shouldAttemptReconnect = () => {
+    return !playersStreamSubscription || !playersStreamSubscription.source;
+  };
+
+  const scheduleReconnectAttempt = () => {
+    if (!shouldAttemptReconnect() || reconnectInFlight) {
+      return;
+    }
+
+    reconnectInFlight = true;
+    Promise.resolve()
+      .then(() => {
+        if (shouldAttemptReconnect()) {
+          connect();
+        }
+      })
+      .finally(() => {
+        reconnectInFlight = false;
+      });
   };
 
   const requestSnapshot = () => {
@@ -79,8 +102,11 @@ export function createPlayersCoordinator(
     }
 
     handlers.onFallbackStart?.();
+    scheduleReconnectAttempt();
+    requestSnapshot();
     playersFallbackPollingId = setIntervalFn(() => {
       requestSnapshot();
+      scheduleReconnectAttempt();
     }, fallbackIntervalMs);
   };
 

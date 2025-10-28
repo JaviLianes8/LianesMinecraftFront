@@ -10,6 +10,8 @@ export function createStatusCoordinator(
     fallbackIntervalMs = STATUS_FALLBACK_INTERVAL_MS,
     setIntervalFn = setInterval,
     clearIntervalFn = clearInterval,
+    setTimeoutFn = setTimeout,
+    clearTimeoutFn = clearTimeout,
     logger = console,
   },
   handlers = {},
@@ -17,6 +19,7 @@ export function createStatusCoordinator(
   let statusStreamSubscription = null;
   let statusSnapshotPromise = null;
   let fallbackPollingId = null;
+  let reconnectTimeoutId = null;
 
   const handleStreamOpen = () => {
     stopFallbackPolling();
@@ -39,8 +42,29 @@ export function createStatusCoordinator(
     statusStreamSubscription = null;
   };
 
+  const cancelScheduledReconnect = () => {
+    if (!reconnectTimeoutId) {
+      return;
+    }
+
+    clearTimeoutFn(reconnectTimeoutId);
+    reconnectTimeoutId = null;
+  };
+
+  const scheduleReconnect = (delayMs) => {
+    if (!Number.isFinite(delayMs) || delayMs <= 0 || reconnectTimeoutId) {
+      return;
+    }
+
+    reconnectTimeoutId = setTimeoutFn(() => {
+      reconnectTimeoutId = null;
+      connect();
+    }, delayMs);
+  };
+
   const connect = () => {
     cleanupStream();
+    cancelScheduledReconnect();
 
     statusStreamSubscription = subscribeToServerStatusStream({
       onOpen: handleStreamOpen,
@@ -49,8 +73,13 @@ export function createStatusCoordinator(
     });
 
     if (!statusStreamSubscription.source) {
+      const { status, retryInMs } = statusStreamSubscription;
       startFallbackPolling();
-      handlers.onStreamUnsupported?.();
+      if (status === 'unsupported') {
+        handlers.onStreamUnsupported?.();
+      } else {
+        scheduleReconnect(typeof retryInMs === 'number' ? retryInMs : fallbackIntervalMs);
+      }
       return;
     }
 
@@ -103,6 +132,7 @@ export function createStatusCoordinator(
   const cleanup = () => {
     cleanupStream();
     stopFallbackPolling();
+    cancelScheduledReconnect();
   };
 
   return Object.freeze({ connect, requestSnapshot, cleanup, startFallbackPolling, stopFallbackPolling });

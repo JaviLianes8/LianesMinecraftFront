@@ -1,4 +1,12 @@
 import { buildApiUrl } from '../../config.js';
+import { getStreamSubscriptionRegistry } from './streamSubscriptionRegistry.js';
+
+const SubscriptionStatus = Object.freeze({
+  CONNECTED: 'connected',
+  DEFERRED: 'deferred',
+  UNSUPPORTED: 'unsupported',
+  FAILED: 'failed',
+});
 
 /**
  * Creates a resilient {@link EventSource} subscription with consistent lifecycle handling.
@@ -8,13 +16,27 @@ import { buildApiUrl } from '../../config.js';
  * @param {(event: MessageEvent<string>) => void} [handlers.onMessage] Invoked with each non-empty message.
  * @param {() => void} [handlers.onOpen] Invoked once the stream is confirmed ready.
  * @param {(event: Event | Error) => void} [handlers.onError] Invoked when the browser reports a stream error.
- * @returns {{ close: () => void, source: EventSource | null }} Handle that terminates the subscription.
+ * @returns {{ close: () => void, source: EventSource | null, status: string, retryInMs: number }}
+ * Handle that terminates the subscription along with subscription metadata.
  */
 export function createEventSourceSubscription(endpoint, { onMessage, onOpen, onError } = {}) {
   if (typeof window === 'undefined' || typeof window.EventSource === 'undefined') {
     return {
       close: () => {},
       source: null,
+      status: SubscriptionStatus.UNSUPPORTED,
+      retryInMs: 0,
+    };
+  }
+
+  const registry = getStreamSubscriptionRegistry();
+  const evaluation = registry.evaluate(endpoint);
+  if (!evaluation.permitted) {
+    return {
+      close: () => {},
+      source: null,
+      status: SubscriptionStatus.DEFERRED,
+      retryInMs: evaluation.delayMs,
     };
   }
 
@@ -29,6 +51,8 @@ export function createEventSourceSubscription(endpoint, { onMessage, onOpen, onE
     return {
       close: () => {},
       source: null,
+      status: SubscriptionStatus.FAILED,
+      retryInMs: 0,
     };
   }
 
@@ -38,6 +62,7 @@ export function createEventSourceSubscription(endpoint, { onMessage, onOpen, onE
       return;
     }
     hasAnnouncedOpen = true;
+    registry.recordOpen(endpoint);
     if (typeof onOpen === 'function') {
       onOpen();
     }
@@ -81,7 +106,8 @@ export function createEventSourceSubscription(endpoint, { onMessage, onOpen, onE
     source.removeEventListener('open', handleOpen);
     source.removeEventListener('error', handleError);
     source.close();
+    registry.recordClose(endpoint);
   };
 
-  return { close, source };
+  return { close, source, status: SubscriptionStatus.CONNECTED, retryInMs: 0 };
 }

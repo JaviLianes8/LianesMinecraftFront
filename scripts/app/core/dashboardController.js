@@ -29,6 +29,8 @@ import {
 /**
  * High-level orchestrator connecting UI presenters with backend services.
  */
+const INITIAL_SNAPSHOT_TIMEOUT_MS = 5000;
+
 export class DashboardController {
   constructor({
     dom,
@@ -99,14 +101,38 @@ export class DashboardController {
   }
   /**
    * Retrieves the initial status and players snapshots before enabling live updates.
+   * Waits until the snapshots finish or the configured timeout elapses, whichever comes first.
    *
-   * @returns {Promise<void>} Completes once both snapshots have been processed.
+   * @param {{ timeoutMs?: number }} [options] Optional configuration overriding the wait timeout in milliseconds.
+   * @returns {Promise<void>} Resolves once the snapshots settle or the timeout triggers.
    */
-  async loadInitialSnapshots() {
-    await Promise.all([
+  async loadInitialSnapshots({ timeoutMs = INITIAL_SNAPSHOT_TIMEOUT_MS } = {}) {
+    const snapshotsPromise = Promise.all([
       this.statusCoordinator.requestSnapshot(),
       this.playersCoordinator.requestSnapshot(),
     ]);
+
+    // Avoid unhandled rejections when the timeout elapses before the snapshots settle.
+    snapshotsPromise.catch(() => {});
+
+    const isFiniteTimeout = Number.isFinite(timeoutMs) && timeoutMs >= 0;
+    if (!isFiniteTimeout) {
+      await snapshotsPromise;
+      return;
+    }
+
+    let timeoutId = null;
+    const timeoutPromise = new Promise((resolve) => {
+      timeoutId = setTimeout(resolve, timeoutMs);
+    });
+
+    try {
+      await Promise.race([snapshotsPromise, timeoutPromise]);
+    } finally {
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+      }
+    }
   }
   /**
    * Attempts to restore the dashboard view using cached data.

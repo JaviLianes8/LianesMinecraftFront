@@ -38,6 +38,7 @@ export function createPlayersCoordinator(
         handlers.onPlayers?.(snapshot);
       },
       onError: () => {
+        cleanupStream();
         startFallbackPolling();
         handlers.onStreamError?.();
       },

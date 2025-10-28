@@ -29,6 +29,7 @@ export function createStatusCoordinator(
   };
 
   const handleStreamError = () => {
+    cleanupStream();
     startFallbackPolling();
     handlers.onStreamError?.();
   };

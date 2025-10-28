@@ -6,6 +6,7 @@ import { createPasswordVerifier } from './passwordVerifier.js';
 import { createPasswordSession } from './passwordSession.js';
 import { PasswordAuthorisationRestorer } from './passwordAuthorisationRestorer.js';
 import { createPasswordDialog } from '../../ui/password/passwordDialogController.js';
+import { PasswordPromptVisibilityGuard } from './passwordPromptVisibilityGuard.js';
 
 /**
  * High-level orchestrator managing password prompts for protected actions.
@@ -31,6 +32,11 @@ export class PasswordPrompt {
       authorisedScopes: this.authorisedScopes,
     });
     this.authorisationRestorer.initialise();
+    this.visibilityGuard = new PasswordPromptVisibilityGuard({
+      dialog: this.dialog,
+      isScopeAuthorised: (scope) => this.isScopeAuthorised(scope),
+    });
+    this.visibilityGuard.start();
   }
 
   /**

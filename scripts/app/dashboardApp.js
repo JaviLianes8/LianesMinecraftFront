@@ -10,6 +10,7 @@ import { translate as t } from '../ui/i18n.js';
 import { renderInfo } from '../ui/statusPresenter.js';
 import { ControlPanelPresenter } from './control/controlPanelPresenter.js';
 import { DashboardController } from './core/dashboardController.js';
+import { createDashboardStateCache } from './core/dashboardStateCache.js';
 import { createDomReferences } from './dom/domReferences.js';
 import { createInfoMessageService } from './info/infoMessageService.js';
 import { LocaleController } from './locale/localeController.js';
@@ -37,6 +38,8 @@ export function createDashboardApp() {
 
   const services = { startServer, stopServer };
   const passwordPrompt = createPasswordPrompt(dom, t);
+  const storage = typeof window !== 'undefined' ? window.localStorage : null;
+  const stateCache = createDashboardStateCache(storage);
 
   const controller = new DashboardController({
     dom,
@@ -49,6 +52,7 @@ export function createDashboardApp() {
     playersCoordinator: null,
     services,
     passwordPrompt,
+    stateCache,
   });
 
   const statusCoordinator = createStatusCoordinator(
@@ -89,7 +93,7 @@ export function createDashboardApp() {
       if (!authorised) {
         return;
       }
-      controller.initialise();
+      await controller.initialise();
     },
     controller,
     passwordPrompt,

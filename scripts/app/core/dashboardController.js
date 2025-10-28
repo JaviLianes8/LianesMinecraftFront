@@ -1,12 +1,36 @@
 import { ServerLifecycleState } from '../../services/serverService.js';
 import { InfoViewState, StatusViewState } from '../../ui/statusPresenter.js';
-import { resolveLifecycleInfo } from './lifecycleInfoResolver.js';
-import { describeError } from './errorDescriptor.js';
-import { confirmStopAction } from './stopConfirmation.js';
+import {
+  attachEventListeners,
+  handleStartRequest,
+  handleStopRequest,
+  executeControlAction,
+  setBusy,
+  updateControlAvailability,
+  applyStatusView,
+} from './dashboardControlActions.js';
+import {
+  handleStatusStreamOpen,
+  handleStatusUpdate,
+  handleStatusStreamError,
+  handleStatusStreamUnsupported,
+  handleStatusFallbackStart,
+  handleStatusFallbackStop,
+  handleSnapshotSuccess,
+  handleSnapshotError,
+  applyServerLifecycleState,
+} from './dashboardStatusHandlers.js';
+import {
+  handlePlayersUpdate,
+  handlePlayersStreamError,
+  cleanup,
+} from './dashboardPlayersHandlers.js';
 
 /**
  * High-level orchestrator connecting UI presenters with backend services.
  */
+const INITIAL_SNAPSHOT_TIMEOUT_MS = 5000;
+
 export class DashboardController {
   constructor({
     dom,
@@ -19,6 +43,7 @@ export class DashboardController {
     playersCoordinator,
     services,
     passwordPrompt,
+    stateCache,
   }) {
     this.dom = dom;
     this.controlPanelPresenter = controlPanelPresenter;
@@ -30,17 +55,26 @@ export class DashboardController {
     this.playersCoordinator = playersCoordinator;
     this.services = services;
     this.passwordPrompt = passwordPrompt ?? null;
+    this.stateCache = stateCache ?? {
+      load: () => null,
+      saveStatus: () => {},
+      savePlayers: () => {},
+      clear: () => {},
+    };
 
     this.currentState = ServerLifecycleState.UNKNOWN;
-    this.currentStatusViewState = StatusViewState.UNKNOWN;
+    this.currentStatusViewState = StatusViewState.CHECKING;
     this.statusEligible = this.busy = false;
     this.hasReceivedStatusUpdate = this.streamHasError = false;
   }
-  initialise() {
+  async initialise() {
     this.localeController.applyLocaleToStaticContent();
     this.controlPanelPresenter.cacheDefaultButtonLabels();
-    this.applyStatusView(this.currentStatusViewState);
     this.playersStageController.initialise();
+    const hasCache = this.restoreCachedState();
+    if (!hasCache) {
+      this.applyStatusView(this.currentStatusViewState);
+    }
     this.controlPanelPresenter.prepareStatusIndicator();
     this.modalController.initialise();
     this.localeController.prepareLocaleToggle(() => {
@@ -51,150 +85,102 @@ export class DashboardController {
       this.updateControlAvailability();
       this.passwordPrompt?.refreshActiveTexts();
     });
-    this.infoMessageService.render({ key: 'info.stream.connecting', state: InfoViewState.PENDING });
+    if (!hasCache) {
+      this.infoMessageService.render({ key: 'info.initial.loading', state: InfoViewState.PENDING });
+    }
     this.updateControlAvailability();
     this.attachEventListeners();
 
+    await this.loadInitialSnapshots();
+
     this.statusCoordinator.connect();
     this.playersCoordinator.connect();
-    this.statusCoordinator.requestSnapshot();
-    this.playersCoordinator.requestSnapshot();
     if (typeof window !== 'undefined') {
       window.addEventListener('beforeunload', () => this.cleanup(), { once: true });
     }
   }
-  attachEventListeners() {
-    const { startButton, stopButton } = this.dom;
-    startButton?.addEventListener('click', () => this.handleStartRequest());
-    stopButton?.addEventListener('click', () => this.handleStopRequest());
-  }
-  async handleStartRequest() {
-    if (!this.statusEligible || this.currentState !== ServerLifecycleState.OFFLINE) {
-      this.infoMessageService.render({ key: 'info.start.requireOffline', state: InfoViewState.ERROR });
+  /**
+   * Retrieves the initial status and players snapshots before enabling live updates.
+   * Waits until the snapshots finish or the configured timeout elapses, whichever comes first.
+   *
+   * @param {{ timeoutMs?: number }} [options] Optional configuration overriding the wait timeout in milliseconds.
+   * @returns {Promise<void>} Resolves once the snapshots settle or the timeout triggers.
+   */
+  async loadInitialSnapshots({ timeoutMs = INITIAL_SNAPSHOT_TIMEOUT_MS } = {}) {
+    const snapshotsPromise = Promise.all([
+      this.statusCoordinator.requestSnapshot(),
+      this.playersCoordinator.requestSnapshot(),
+    ]);
+
+    // Avoid unhandled rejections when the timeout elapses before the snapshots settle.
+    snapshotsPromise.catch(() => {});
+
+    const isFiniteTimeout = Number.isFinite(timeoutMs) && timeoutMs >= 0;
+    if (!isFiniteTimeout) {
+      await snapshotsPromise;
       return;
     }
-    await this.executeControlAction(async () => this.services.startServer(), {
-      pending: 'info.start.pending',
-      success: 'info.start.success',
-    }, {
-      sourceButton: this.dom.startButton,
-      busyLabelKey: 'ui.controls.start.busy',
+
+    let timeoutId = null;
+    const timeoutPromise = new Promise((resolve) => {
+      timeoutId = setTimeout(resolve, timeoutMs);
     });
-  }
-  async handleStopRequest() {
-    if (!this.statusEligible || this.currentState !== ServerLifecycleState.ONLINE) {
-      this.infoMessageService.render({ key: 'info.stop.requireOnline', state: InfoViewState.ERROR });
-      return;
-    }
-    if (!confirmStopAction() || (await this.passwordPrompt?.ensureStopAccess?.()) === false) {
-      return;
-    }
-    await this.executeControlAction(async () => this.services.stopServer(), {
-      pending: 'info.stop.pending',
-      success: 'info.stop.success',
-    }, {
-      sourceButton: this.dom.stopButton,
-      busyLabelKey: 'ui.controls.stop.busy',
-    });
-  }
-  async executeControlAction(action, messageKeys, options = {}) {
-    this.setBusy(true, StatusViewState.PROCESSING);
-    this.infoMessageService.render({ key: messageKeys.pending, state: InfoViewState.PENDING });
-    const { sourceButton, busyLabelKey } = options;
-    const restoreButtonState = sourceButton
-      ? this.controlPanelPresenter.setControlButtonBusy(sourceButton, busyLabelKey)
-      : () => {};
 
     try {
-      await action();
-      this.currentState = ServerLifecycleState.UNKNOWN;
-      this.statusEligible = false;
-      this.applyStatusView(this.currentState);
-      this.infoMessageService.render({ key: messageKeys.success, state: InfoViewState.SUCCESS });
-    } catch (error) {
-      this.currentState = ServerLifecycleState.ERROR;
-      this.statusEligible = false;
-      this.applyStatusView(StatusViewState.ERROR);
-      const errorDescriptor = describeError(error);
-      this.infoMessageService.render({ ...errorDescriptor, state: InfoViewState.ERROR });
+      await Promise.race([snapshotsPromise, timeoutPromise]);
     } finally {
-      restoreButtonState();
-      this.setBusy(false, this.currentState);
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+      }
     }
   }
-  setBusy(value, viewState = this.currentState) {
-    this.busy = value;
-    this.updateControlAvailability(viewState);
-    this.applyStatusView(viewState);
-    this.controlPanelPresenter.setStatusBusy(value);
-  }
-  updateControlAvailability(viewState = this.currentStatusViewState) {
-    this.controlPanelPresenter.updateAvailability({
-      busy: this.busy,
-      statusEligible: this.statusEligible,
-      lifecycleState: viewState,
-    });
-  }
-  applyStatusView(state) {
-    this.currentStatusViewState = state;
-    this.controlPanelPresenter.applyStatusView(state);
-  }
-  handleStatusStreamOpen() {
-    this.streamHasError = false;
-    this.controlPanelPresenter.refreshBusyButtonLabels();
-    if (!this.hasReceivedStatusUpdate) {
-      this.infoMessageService.render({ key: 'info.stream.connected', state: InfoViewState.SUCCESS });
+  /**
+   * Attempts to restore the dashboard view using cached data.
+   *
+   * @returns {boolean} Whether any cached content was applied.
+   */
+  restoreCachedState() {
+    const cached = this.stateCache.load?.();
+    if (!cached) {
+      return false;
     }
-  }
-  handleStatusUpdate({ state }) {
-    this.streamHasError = false;
-    this.applyServerLifecycleState(state);
-  }
-  handleStatusStreamError() {
-    if (this.streamHasError) {
-      return;
+
+    let hasRestored = false;
+
+    if (cached.status) {
+      this.applyServerLifecycleState(cached.status);
+      hasRestored = true;
     }
-    this.streamHasError = true;
-    const infoKey = this.hasReceivedStatusUpdate ? 'info.stream.reconnecting' : 'info.stream.error';
-    const infoState = this.hasReceivedStatusUpdate ? InfoViewState.PENDING : InfoViewState.ERROR;
-    this.infoMessageService.render({ key: infoKey, state: infoState });
-    this.statusCoordinator.requestSnapshot();
-    this.playersCoordinator.requestSnapshot();
-  }
-  handleStatusStreamUnsupported() {
-    this.infoMessageService.render({ key: 'info.stream.unsupported', state: InfoViewState.ERROR });
-  }
-  handleStatusFallbackStart() { this.playersCoordinator.startFallbackPolling(); }
-  handleStatusFallbackStop() { this.playersCoordinator.stopFallbackPolling(); }
-  handleSnapshotSuccess({ state }) { this.applyServerLifecycleState(state); }
-  handleSnapshotError(error) {
-    this.currentState = ServerLifecycleState.ERROR;
-    this.statusEligible = false;
-    this.applyStatusView(StatusViewState.ERROR);
-    this.updateControlAvailability(StatusViewState.ERROR);
-    const errorDescriptor = describeError(error);
-    this.infoMessageService.render({ ...errorDescriptor, state: InfoViewState.ERROR });
-  }
-  applyServerLifecycleState(state) {
-    this.hasReceivedStatusUpdate = true;
-    this.currentState = state;
-    this.statusEligible =
-      state === ServerLifecycleState.ONLINE || state === ServerLifecycleState.OFFLINE;
-    this.applyStatusView(state);
-    this.updateControlAvailability(state);
-    this.infoMessageService.render(resolveLifecycleInfo(state));
-  }
-  handlePlayersUpdate(snapshot) {
-    const players = snapshot && Array.isArray(snapshot.players) ? snapshot.players : [];
-    this.playersStageController.update(players);
-  }
-  handlePlayersStreamError() {
-    this.playersCoordinator.startFallbackPolling();
-    this.playersCoordinator.requestSnapshot();
-  }
-  cleanup() {
-    this.statusCoordinator.cleanup();
-    this.playersCoordinator.cleanup();
-    this.playersStageController.destroy();
+
+    if ('players' in cached) {
+      const players = Array.isArray(cached.players) ? cached.players : [];
+      this.playersStageController.update(players);
+      hasRestored = true;
+    }
+
+    return hasRestored;
   }
 }
+
+Object.assign(DashboardController.prototype, {
+  attachEventListeners,
+  handleStartRequest,
+  handleStopRequest,
+  executeControlAction,
+  setBusy,
+  updateControlAvailability,
+  applyStatusView,
+  handleStatusStreamOpen,
+  handleStatusUpdate,
+  handleStatusStreamError,
+  handleStatusStreamUnsupported,
+  handleStatusFallbackStart,
+  handleStatusFallbackStop,
+  handleSnapshotSuccess,
+  handleSnapshotError,
+  applyServerLifecycleState,
+  handlePlayersUpdate,
+  handlePlayersStreamError,
+  cleanup,
+});
+

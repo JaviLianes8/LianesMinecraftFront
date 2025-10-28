@@ -1,4 +1,5 @@
 import { drawDeadpoolSkin } from './deadpoolSkin.js';
+import { drawDinosaurSkin } from './dinosaurSkin.js';
 import { drawDefaultSkin } from './defaultSkin.js';
 import { drawEzioSkin } from './ezioSkin.js';
 import { drawGeoOperatorSkin } from './geoOperatorSkin.js';
@@ -12,6 +13,7 @@ import { drawMinecraftCreeperSkin } from './minecraftCreeperSkin.js';
 const PLAYER_SKINS = new Map([
   ['lianes8', drawLuffySkin],
   ['pozofer11', drawPandaSkin],
+  ['slujan', drawDinosaurSkin],
   ['bruyan', drawDeadpoolSkin],
   ['wladymir14', drawPeakyBlindersSkin],
   ['alexethe', drawGeoOperatorSkin],

@@ -64,3 +64,14 @@
     max-height: clamp(140px, 32dvh, 200px);
   }
 }
+
+@media (max-width: 480px) {
+  .torch-container {
+    padding: clamp(6px, 5vw, 14px);
+  }
+
+  .torch {
+    width: clamp(110px, 50vw, 160px);
+    max-height: clamp(130px, 40dvh, 190px);
+  }
+}

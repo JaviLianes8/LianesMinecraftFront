@@ -72,7 +72,7 @@ footer {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: clamp(6px, 1.6vw, 14px);
+  gap: clamp(6px, 2vw, 14px);
   text-align: center;
   color: #9aa3b2;
   font-size: clamp(11px, 2vw, 14px);
@@ -161,5 +161,21 @@ main {
     justify-content: flex-start;
     gap: clamp(8px, 2vw, 14px);
     font-size: clamp(12px, 2.2vw, 14px);
+  }
+}
+
+@media (max-width: 480px) {
+  header,
+  footer {
+    padding: clamp(8px, 3.6vw, 16px) clamp(12px, 6vw, 20px);
+  }
+
+  footer {
+    gap: clamp(4px, 3vw, 10px);
+    font-size: clamp(10px, 3.4vw, 13px);
+  }
+
+  main {
+    padding: clamp(10px, 6dvh, 22px) clamp(10px, 6vw, 20px);
   }
 }

@@ -10,8 +10,8 @@
   cursor: pointer;
   transition: transform 0.08s ease, box-shadow 0.2s ease, opacity 0.2s ease;
   position: relative;
-  min-width: clamp(140px, 45vw, 200px);
-  flex: 1 1 clamp(140px, 45vw, 220px);
+  min-width: clamp(120px, 42vw, 200px);
+  flex: 1 1 clamp(120px, 42vw, 220px);
   max-width: 100%;
   text-align: center;
 }
@@ -73,27 +73,15 @@
   box-shadow: 0 0 0 3px rgba(255, 77, 77, 0.2) inset;
 }
 
-/* Help button colors emphasise guidance */
+/* Help button colours adopt the brand's support accent */
 .control-button--help {
-  border-color: #c76925;
-  background: linear-gradient(135deg, rgba(255, 153, 0, 0.28), rgba(255, 140, 0, 0.08));
-  color: #ffe4c2;
-}
-
-/* Help hover adds inset glow */
-.control-button--help:hover:not([disabled]) {
-  box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.18) inset;
-}
-
-/* Locale toggle colors emphasise internationalisation */
-.control-button--locale {
   border-color: #2a6ebf;
   background: linear-gradient(135deg, rgba(109, 173, 255, 0.3), rgba(57, 124, 210, 0.12));
   color: #d9ecff;
 }
 
-/* Locale hover adds inset glow */
-.control-button--locale:hover:not([disabled]) {
+/* Help hover adds inset glow */
+.control-button--help:hover:not([disabled]) {
   box-shadow: 0 0 0 3px rgba(109, 173, 255, 0.18) inset;
 }
 
@@ -109,5 +97,14 @@
     padding: clamp(8px, 2dvh, 10px) clamp(14px, 3.6vw, 18px);
     min-width: clamp(120px, 42vw, 180px);
     flex-basis: clamp(120px, 42vw, 200px);
+  }
+}
+
+@media (max-width: 480px) {
+  .control-button {
+    padding: clamp(8px, 2.8vw, 10px) clamp(12px, 5vw, 16px);
+    font-size: clamp(13px, 3.6vw, 15px);
+    min-width: clamp(110px, 44vw, 170px);
+    flex-basis: clamp(110px, 44vw, 180px);
   }
 }

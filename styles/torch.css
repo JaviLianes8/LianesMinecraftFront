@@ -3,14 +3,16 @@
   position: relative;
   display: grid;
   place-items: center;
-  padding: 14px;
+  padding: clamp(12px, 4vw, 20px);
+  width: 100%;
 }
 
 /* Torch graphic benefits from dramatic drop shadow */
 .torch {
   position: relative;
   z-index: 1;
-  width: min(200px, 40vw);
+  width: clamp(160px, 38vw, 220px);
+  max-width: 100%;
   filter: drop-shadow(0 12px 22px rgba(0, 0, 0, 0.6));
   transition: filter 0.2s ease;
 }

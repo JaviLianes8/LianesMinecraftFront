@@ -9,7 +9,10 @@
   cursor: pointer;
   transition: transform 0.08s ease, box-shadow 0.2s ease, opacity 0.2s ease;
   position: relative;
-  min-width: 160px;
+  min-width: clamp(140px, 45vw, 200px);
+  flex: 1 1 clamp(140px, 45vw, 220px);
+  max-width: 100%;
+  text-align: center;
 }
 
 /* Click feedback nudges buttons downward */
@@ -91,4 +94,11 @@
 /* Locale hover adds inset glow */
 .control-button--locale:hover:not([disabled]) {
   box-shadow: 0 0 0 3px rgba(109, 173, 255, 0.18) inset;
+}
+
+@media (min-width: 768px) {
+  .control-button {
+    flex: 0 1 200px;
+    min-width: 170px;
+  }
 }

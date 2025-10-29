@@ -4,7 +4,7 @@
   inset: 0;
   display: grid;
   place-items: center;
-  padding: clamp(16px, 4vw, 36px);
+  padding: clamp(14px, 3.6dvh, 32px);
   opacity: 0;
   pointer-events: none;
   visibility: hidden;
@@ -34,13 +34,20 @@
   border: 1px solid rgba(160, 207, 255, 0.28);
   border-radius: 20px;
   padding: clamp(24px, 3vw, 32px) clamp(22px, 3vw, 36px) clamp(20px, 3vw, 30px);
-  width: min(540px, 92vw);
+  width: min(540px, calc(100vw - clamp(32px, 8vw, 140px)));
+  max-width: 100%;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
   display: grid;
   gap: 18px;
   z-index: 1;
-  max-height: min(640px, calc(100vh - 96px));
+  max-height: min(560px, calc(100dvh - clamp(56px, 14dvh, 132px)));
   overflow-y: auto;
+}
+
+@supports not (height: 100dvh) {
+  .modal__content {
+    max-height: min(560px, calc(100vh - clamp(56px, 14vh, 132px)));
+  }
 }
 
 /* Close button sits at the corner for fast dismissal */
@@ -63,15 +70,15 @@
 /* Modal body organises textual content */
 .modal__body {
   display: grid;
-  gap: 14px;
-  font-size: 14px;
+  gap: clamp(12px, 2.5vw, 16px);
+  font-size: clamp(13px, 2.4vw, 15px);
   color: #c8d7ef;
 }
 
 /* Section titles inside the modal */
 .modal-section h3 {
   margin: 0 0 6px 0;
-  font-size: 16px;
+  font-size: clamp(15px, 2.8vw, 18px);
   color: #f6f7fb;
 }
 
@@ -90,4 +97,19 @@ body.modal-open {
 body.modal-open .control-button--help {
   opacity: 0;
   pointer-events: none;
+}
+
+@media (max-height: 640px) {
+  .modal__content {
+    padding: clamp(20px, 3dvh, 28px) clamp(20px, 6vw, 32px) clamp(18px, 3dvh, 26px);
+    gap: clamp(12px, 2.2dvh, 16px);
+  }
+
+  .modal__body {
+    font-size: clamp(12px, 2.2vw, 14px);
+  }
+
+  .modal-section h3 {
+    font-size: clamp(14px, 2.6vw, 17px);
+  }
 }

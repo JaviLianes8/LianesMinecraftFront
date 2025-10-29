@@ -1,6 +1,6 @@
 /* Control card container orchestrating the dashboard layout */
 .control-card {
-  width: min(860px, 94vw);
+  width: min(817px, 89vw);
   background: var(--panel);
   border: 2px solid var(--border);
   border-radius: 16px;

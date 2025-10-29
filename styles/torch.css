@@ -3,7 +3,7 @@
   position: relative;
   display: grid;
   place-items: center;
-  padding: clamp(12px, 4vw, 20px);
+  padding: clamp(10px, 3dvh, 20px);
   width: 100%;
 }
 
@@ -11,8 +11,9 @@
 .torch {
   position: relative;
   z-index: 1;
-  width: clamp(160px, 38vw, 220px);
+  width: clamp(150px, 36vw, 220px);
   max-width: 100%;
+  max-height: clamp(180px, 36dvh, 280px);
   filter: drop-shadow(0 12px 22px rgba(0, 0, 0, 0.6));
   transition: filter 0.2s ease;
 }
@@ -44,4 +45,22 @@
 
 .fl3 {
   animation: flick 0.16s infinite ease-in-out 0.05s;
+}
+
+@media (max-height: 720px) {
+  .torch {
+    width: clamp(130px, 32vw, 190px);
+    max-height: clamp(160px, 34dvh, 240px);
+  }
+}
+
+@media (max-height: 600px) {
+  .torch-container {
+    padding: clamp(8px, 2.2dvh, 14px);
+  }
+
+  .torch {
+    width: clamp(110px, 28vw, 160px);
+    max-height: clamp(140px, 32dvh, 200px);
+  }
 }

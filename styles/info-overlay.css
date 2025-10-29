@@ -9,7 +9,7 @@
   pointer-events: none;
   transition: opacity 0.2s ease, visibility 0.2s ease;
   z-index: 40;
-  padding: clamp(10px, 3vw, 18px);
+  padding: clamp(8px, 2.4dvh, 18px);
 }
 
 /* Visible overlay exposes the feedback panel */
@@ -36,12 +36,12 @@
   align-items: center;
   justify-content: center;
   gap: 10px;
-  padding: clamp(10px, 2.5vw, 14px) clamp(14px, 4vw, 22px);
+  padding: clamp(10px, 2.2dvh, 14px) clamp(14px, 4vw, 22px);
   border-radius: 14px;
   transition: color 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
   position: relative;
   z-index: 1;
-  width: min(420px, calc(100vw - clamp(32px, 12vw, 120px)));
+  width: min(420px, calc(100vw - clamp(24px, 10vw, 120px)));
   line-height: 1.5;
   opacity: 0;
   transform: translateY(12px);

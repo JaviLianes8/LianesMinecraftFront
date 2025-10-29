@@ -1,17 +1,30 @@
 /* Control card container orchestrating the dashboard layout */
 .control-card {
-  width: min(820px, 100%);
+  width: min(820px, calc(100vw - clamp(32px, 12vw, 140px)));
   background: var(--panel);
   border: 2px solid var(--border);
   border-radius: 16px;
-  padding: clamp(20px, 5vw, 32px);
+  padding: clamp(16px, 4dvh, 28px) clamp(20px, 5vw, 36px);
   box-shadow: var(--shadow), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
   display: grid;
-  gap: clamp(16px, 4vw, 24px);
+  gap: clamp(12px, 3.6dvh, 24px);
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    'title'
+    'torch'
+    'controls'
+    'downloads';
   align-items: center;
   justify-items: center;
   position: relative;
   overflow: hidden;
+  max-height: calc(100dvh - clamp(24px, 6dvh, 96px));
+}
+
+@supports not (height: 100dvh) {
+  .control-card {
+    max-height: calc(100vh - clamp(24px, 6vh, 96px));
+  }
 }
 
 .control-card::before {
@@ -37,7 +50,7 @@
 .control-card__title {
   font-weight: 800;
   letter-spacing: 0.4px;
-  font-size: clamp(22px, 3.2vw, 32px);
+  font-size: clamp(20px, 3.2vw, 30px);
   margin: 0;
   text-align: center;
   width: 100%;
@@ -54,6 +67,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  grid-area: title;
 }
 
 /* Controls row adapts to varying button counts */
@@ -63,6 +77,7 @@
   flex-wrap: wrap;
   justify-content: center;
   width: 100%;
+  grid-area: controls;
 }
 
 /* Player stage handles overlayed player info */
@@ -75,4 +90,51 @@
   z-index: 0;
   image-rendering: pixelated;
   filter: saturate(1.15);
+}
+
+.torch-container {
+  grid-area: torch;
+}
+
+.downloads {
+  grid-area: downloads;
+  width: 100%;
+}
+
+@media (max-height: 720px) {
+  .control-card {
+    padding: clamp(14px, 3dvh, 24px) clamp(18px, 4.6vw, 30px);
+    gap: clamp(10px, 2.6dvh, 18px);
+  }
+
+  .control-card__title {
+    font-size: clamp(18px, 3vw, 26px);
+  }
+}
+
+@media (max-height: 600px) {
+  .control-card {
+    padding: clamp(12px, 2.6dvh, 20px) clamp(16px, 4.4vw, 26px);
+    gap: clamp(8px, 2dvh, 16px);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      'title title'
+      'torch controls'
+      'downloads downloads';
+    align-items: stretch;
+  }
+
+  .control-card__title {
+    font-size: clamp(17px, 2.8vw, 24px);
+  }
+
+  .torch-container,
+  .controls {
+    align-self: stretch;
+    justify-self: stretch;
+  }
+
+  .controls {
+    justify-content: center;
+  }
 }

@@ -1,4 +1,4 @@
-const REMOTE_API_BASE_URL = 'http://naseevvee.duckdns.org:8000/api';
+const REMOTE_API_BASE_URL = 'http://lianes8server.duckdns.org:8000/api';
 const PROXY_API_BASE_PATH = '/api';
 
 /**

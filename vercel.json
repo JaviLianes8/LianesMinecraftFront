@@ -4,11 +4,11 @@
   "rewrites": [
     {
       "source": "/api",
-      "destination": "http://naseevvee.duckdns.org:8000/api"
+      "destination": "http://jlianesminipc.ddns.net:8000/api"
     },
     {
       "source": "/api/:path*",
-      "destination": "http://naseevvee.duckdns.org:8000/api/:path*"
+      "destination": "http://jlianesminipc.ddns.net:8000/api/:path*"
     }
   ]
 }

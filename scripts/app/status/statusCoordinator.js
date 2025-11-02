@@ -1,4 +1,4 @@
-const STATUS_FALLBACK_INTERVAL_MS = 30000;
+const STATUS_FALLBACK_INTERVAL_MS = 200;
 
 /**
  * Coordinates the streaming and polling mechanisms for the server status endpoint.
@@ -24,8 +24,8 @@ export function createStatusCoordinator(
     handlers.onStreamOpen?.();
   };
 
-  const handleStreamStatus = (payload) => {
-    handlers.onStreamStatus?.(payload);
+  const handleStreamStatus = (snapshot) => {
+    handlers.onStreamStatus?.(snapshot);
   };
 
   const handleStreamError = () => {
@@ -113,8 +113,8 @@ export function createStatusCoordinator(
 
     statusSnapshotPromise = (async () => {
       try {
-        const { state } = await fetchServerStatus();
-        handlers.onSnapshotSuccess?.({ state });
+        const snapshot = await fetchServerStatus();
+        handlers.onSnapshotSuccess?.(snapshot);
       } catch (error) {
         handlers.onSnapshotError?.(error);
       } finally {

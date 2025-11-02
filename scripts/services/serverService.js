@@ -2,6 +2,7 @@ export {
   ServerLifecycleState,
   fetchServerStatus,
   normaliseServerStatusPayload,
+  normaliseServerStatusSnapshot,
   startServer,
   stopServer,
 } from './server/serverControl.js';

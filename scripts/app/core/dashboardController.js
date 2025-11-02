@@ -18,7 +18,7 @@ import {
   handleStatusFallbackStop,
   handleSnapshotSuccess,
   handleSnapshotError,
-  applyServerLifecycleState,
+  applyServerStatusSnapshot,
 } from './dashboardStatusHandlers.js';
 import {
   handlePlayersUpdate,
@@ -64,7 +64,11 @@ export class DashboardController {
 
     this.currentState = ServerLifecycleState.UNKNOWN;
     this.currentStatusViewState = StatusViewState.CHECKING;
-    this.statusEligible = this.busy = false;
+    this.busy = false;
+    this.canStart = false;
+    this.canStop = false;
+    this.pendingStartConfirmation = false;
+    this.pendingStopConfirmation = false;
     this.hasReceivedStatusUpdate = this.streamHasError = false;
   }
   async initialise() {
@@ -150,7 +154,7 @@ export class DashboardController {
     let hasRestored = false;
 
     if (cached.status) {
-      this.applyServerLifecycleState(cached.status);
+      this.applyServerStatusSnapshot(cached.status);
       hasRestored = true;
     }
 
@@ -180,7 +184,7 @@ Object.assign(DashboardController.prototype, {
   handleStatusFallbackStop,
   handleSnapshotSuccess,
   handleSnapshotError,
-  applyServerLifecycleState,
+  applyServerStatusSnapshot,
   handlePlayersUpdate,
   handlePlayersStreamError,
   cleanup,

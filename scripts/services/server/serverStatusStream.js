@@ -1,7 +1,8 @@
 import { createEventSourceSubscription } from './eventSourceSubscription.js';
-import { normaliseServerStatusPayload } from './lifecycle.js';
+import { normaliseServerStatusSnapshot } from './lifecycle.js';
 
 const STATUS_STREAM_ENDPOINT = '/server/status/stream';
+const STATUS_STREAM_HEARTBEAT_TIMEOUT_MS = 2500;
 
 /**
  * Subscribes to the server status stream exposed by the backend using SSE.
@@ -28,10 +29,11 @@ export function subscribeToServerStatusStream({ onStatus, onOpen, onError } = {}
         payload = event.data;
       }
 
-      const state = normaliseServerStatusPayload(payload);
+      const snapshot = normaliseServerStatusSnapshot(payload);
       if (typeof onStatus === 'function') {
-        onStatus({ state, raw: payload });
+        onStatus(snapshot);
       }
     },
+    heartbeatTimeoutMs: STATUS_STREAM_HEARTBEAT_TIMEOUT_MS,
   });
 }

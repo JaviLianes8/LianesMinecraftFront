@@ -97,10 +97,13 @@ export class ControlPanelPresenter {
    *
    * @param {Object} options Control options.
    * @param {boolean} options.busy Whether an action is currently being processed.
-   * @param {boolean} options.statusEligible Whether lifecycle-dependent actions are allowed.
    * @param {ServerLifecycleState | StatusViewState} options.lifecycleState Current lifecycle state.
+   * @param {boolean} options.canStart Whether the backend reports the start action as available.
+   * @param {boolean} options.canStop Whether the backend reports the stop action as available.
+   * @param {boolean} options.pendingStart Whether the start action awaits confirmation from the backend.
+   * @param {boolean} options.pendingStop Whether the stop action awaits confirmation from the backend.
    */
-  updateAvailability({ busy, statusEligible, lifecycleState }) {
+  updateAvailability({ busy, lifecycleState, canStart, canStop, pendingStart, pendingStop }) {
     if (!this.statusButton || !this.startButton || !this.stopButton) {
       return;
     }
@@ -109,20 +112,18 @@ export class ControlPanelPresenter {
     this.statusButton.setAttribute('aria-disabled', 'true');
     this.updateButtonTooltip(this.statusButton, this.translate('info.status.readOnly'));
 
-    const startDisabled =
-      busy || !statusEligible || lifecycleState !== ServerLifecycleState.OFFLINE;
+    const startDisabled = busy || pendingStart || !canStart;
     this.updateControlButtonState({
       button: this.startButton,
       disabled: startDisabled,
-      tooltip: this.resolveStartTooltip({ busy, statusEligible, lifecycleState }),
+      tooltip: this.resolveStartTooltip({ busy, lifecycleState, canStart, pendingStart }),
     });
 
-    const stopDisabled =
-      busy || !statusEligible || lifecycleState !== ServerLifecycleState.ONLINE;
+    const stopDisabled = busy || pendingStop || !canStop;
     this.updateControlButtonState({
       button: this.stopButton,
       disabled: stopDisabled,
-      tooltip: this.resolveStopTooltip({ busy, statusEligible, lifecycleState }),
+      tooltip: this.resolveStopTooltip({ busy, lifecycleState, canStop, pendingStop }),
     });
   }
 
@@ -167,21 +168,21 @@ export class ControlPanelPresenter {
     this.updateButtonTooltip(button, tooltip);
   }
 
-  resolveStartTooltip({ busy, statusEligible, lifecycleState }) {
-    if (busy) {
+  resolveStartTooltip({ busy, lifecycleState, canStart, pendingStart }) {
+    if (busy || pendingStart) {
       return this.translate('info.busy');
     }
-    if (!statusEligible || lifecycleState !== ServerLifecycleState.OFFLINE) {
+    if (!canStart) {
       return this.translate('info.start.requireOffline');
     }
     return null;
   }
 
-  resolveStopTooltip({ busy, statusEligible, lifecycleState }) {
-    if (busy) {
+  resolveStopTooltip({ busy, lifecycleState, canStop, pendingStop }) {
+    if (busy || pendingStop) {
       return this.translate('info.busy');
     }
-    if (!statusEligible || lifecycleState !== ServerLifecycleState.ONLINE) {
+    if (!canStop) {
       return this.translate('info.stop.requireOnline');
     }
     return null;

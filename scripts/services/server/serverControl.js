@@ -1,5 +1,9 @@
 import { request } from '../../http/request.js';
-import { ServerLifecycleState, normaliseServerStatusPayload } from './lifecycle.js';
+import {
+  ServerLifecycleState,
+  normaliseServerStatusPayload,
+  normaliseServerStatusSnapshot,
+} from './lifecycle.js';
 
 const STATUS_ENDPOINT = '/server/status';
 const START_ENDPOINT = '/server/start';
@@ -12,10 +16,7 @@ const STOP_ENDPOINT = '/server/stop';
  */
 export async function fetchServerStatus() {
   const { data } = await request({ path: STATUS_ENDPOINT });
-  return {
-    state: normaliseServerStatusPayload(data),
-    raw: data,
-  };
+  return normaliseServerStatusSnapshot(data);
 }
 
 /**
@@ -36,4 +37,4 @@ export async function stopServer() {
   await request({ path: STOP_ENDPOINT, method: 'POST' });
 }
 
-export { ServerLifecycleState, normaliseServerStatusPayload };
+export { ServerLifecycleState, normaliseServerStatusPayload, normaliseServerStatusSnapshot };

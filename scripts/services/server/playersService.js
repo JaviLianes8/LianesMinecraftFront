@@ -3,6 +3,7 @@ import { createEventSourceSubscription } from './eventSourceSubscription.js';
 
 const PLAYERS_STREAM_ENDPOINT = '/server/players/stream';
 const PLAYERS_SNAPSHOT_ENDPOINT = '/server/players';
+const PLAYERS_STREAM_HEARTBEAT_TIMEOUT_MS = 5000;
 
 /**
  * Subscribes to the live players stream exposed by the backend using SSE.
@@ -33,6 +34,7 @@ export function connectToPlayersStream({ onPlayers, onOpen, onError } = {}) {
         console.warn('Unable to parse players stream payload', error);
       }
     },
+    heartbeatTimeoutMs: PLAYERS_STREAM_HEARTBEAT_TIMEOUT_MS,
   });
 }
 

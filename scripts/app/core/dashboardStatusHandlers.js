@@ -20,11 +20,11 @@ export function handleStatusStreamOpen() {
  * Processes incoming status updates.
  *
  * @this {import('./dashboardController.js').DashboardController}
- * @param {{ state: string }} payload Status payload.
+ * @param {{ state?: string, canStart?: boolean, canStop?: boolean }} snapshot Status snapshot.
  */
-export function handleStatusUpdate({ state }) {
+export function handleStatusUpdate(snapshot) {
   this.streamHasError = false;
-  this.applyServerLifecycleState(state);
+  this.applyServerStatusSnapshot(snapshot);
 }
 
 /**
@@ -75,10 +75,10 @@ export function handleStatusFallbackStop() {
  * Handles successful status snapshot retrieval.
  *
  * @this {import('./dashboardController.js').DashboardController}
- * @param {{ state: string }} payload Normalised snapshot payload.
+ * @param {{ state?: string, canStart?: boolean, canStop?: boolean }} snapshot Normalised snapshot payload.
  */
-export function handleSnapshotSuccess({ state }) {
-  this.applyServerLifecycleState(state);
+export function handleSnapshotSuccess(snapshot) {
+  this.applyServerStatusSnapshot(snapshot);
 }
 
 /**
@@ -89,26 +89,58 @@ export function handleSnapshotSuccess({ state }) {
  */
 export function handleSnapshotError(error) {
   this.currentState = ServerLifecycleState.ERROR;
-  this.statusEligible = false;
+  this.canStart = false;
+  this.canStop = false;
+  this.pendingStartConfirmation = false;
+  this.pendingStopConfirmation = false;
   this.applyStatusView(StatusViewState.ERROR);
   this.updateControlAvailability(StatusViewState.ERROR);
+  this.controlPanelPresenter.setStatusBusy(false);
   const errorDescriptor = describeError(error);
   this.infoMessageService.render({ ...errorDescriptor, state: InfoViewState.ERROR });
 }
 
 /**
- * Applies the provided server lifecycle state to the UI and cache.
+ * Applies the provided server status snapshot to the UI and cache.
  *
  * @this {import('./dashboardController.js').DashboardController}
- * @param {string} state Server lifecycle state.
+ * @param {{ state?: string, canStart?: boolean, canStop?: boolean } | string | null | undefined} snapshot
+ * Server status snapshot or lifecycle state.
  */
-export function applyServerLifecycleState(state) {
+export function applyServerStatusSnapshot(snapshot) {
   this.hasReceivedStatusUpdate = true;
-  this.currentState = state;
-  this.statusEligible =
-    state === ServerLifecycleState.ONLINE || state === ServerLifecycleState.OFFLINE;
-  this.applyStatusView(state);
-  this.updateControlAvailability(state);
-  this.infoMessageService.render(resolveLifecycleInfo(state));
-  this.stateCache.saveStatus?.(state);
+
+  const isObject = snapshot && typeof snapshot === 'object';
+  const resolvedState = isObject && typeof snapshot.state === 'string'
+    ? snapshot.state
+    : typeof snapshot === 'string'
+      ? snapshot
+      : ServerLifecycleState.UNKNOWN;
+
+  const canStart = Boolean(isObject && snapshot.canStart === true);
+  const canStop = Boolean(isObject && snapshot.canStop === true);
+
+  if (!isObject) {
+    this.pendingStartConfirmation = false;
+    this.pendingStopConfirmation = false;
+  } else {
+    if (this.pendingStartConfirmation && (canStop || canStart)) {
+      this.pendingStartConfirmation = false;
+    }
+    if (this.pendingStopConfirmation && canStart) {
+      this.pendingStopConfirmation = false;
+    }
+  }
+
+  this.currentState = resolvedState;
+  this.canStart = canStart;
+  this.canStop = canStop;
+
+  this.applyStatusView(resolvedState);
+  this.updateControlAvailability(resolvedState);
+  this.controlPanelPresenter.setStatusBusy(
+    this.busy || this.pendingStartConfirmation || this.pendingStopConfirmation,
+  );
+  this.infoMessageService.render(resolveLifecycleInfo(resolvedState));
+  this.stateCache.saveStatus?.(resolvedState);
 }

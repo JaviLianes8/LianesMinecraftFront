@@ -21,17 +21,22 @@ export function attachEventListeners() {
  * @returns {Promise<void>} Resolves when handling completes.
  */
 export async function handleStartRequest() {
-  if (!this.statusEligible || this.currentState !== ServerLifecycleState.OFFLINE) {
+  if (!this.canStart) {
     this.infoMessageService.render({ key: 'info.start.requireOffline', state: InfoViewState.ERROR });
     return;
   }
-  await this.executeControlAction(async () => this.services.startServer(), {
+  const succeeded = await this.executeControlAction(async () => this.services.startServer(), {
     pending: 'info.start.pending',
     success: 'info.start.success',
   }, {
     sourceButton: this.dom.startButton,
     busyLabelKey: 'ui.controls.start.busy',
   });
+  if (succeeded) {
+    this.pendingStartConfirmation = true;
+    this.controlPanelPresenter.setStatusBusy(true);
+    this.updateControlAvailability();
+  }
 }
 
 /**
@@ -41,20 +46,25 @@ export async function handleStartRequest() {
  * @returns {Promise<void>} Resolves when handling completes.
  */
 export async function handleStopRequest() {
-  if (!this.statusEligible || this.currentState !== ServerLifecycleState.ONLINE) {
+  if (!this.canStop) {
     this.infoMessageService.render({ key: 'info.stop.requireOnline', state: InfoViewState.ERROR });
     return;
   }
   if (!confirmStopAction() || (await this.passwordPrompt?.ensureStopAccess?.()) === false) {
     return;
   }
-  await this.executeControlAction(async () => this.services.stopServer(), {
+  const succeeded = await this.executeControlAction(async () => this.services.stopServer(), {
     pending: 'info.stop.pending',
     success: 'info.stop.success',
   }, {
     sourceButton: this.dom.stopButton,
     busyLabelKey: 'ui.controls.stop.busy',
   });
+  if (succeeded) {
+    this.pendingStopConfirmation = true;
+    this.controlPanelPresenter.setStatusBusy(true);
+    this.updateControlAvailability();
+  }
 }
 
 /**
@@ -74,15 +84,23 @@ export async function executeControlAction(action, messageKeys, options = {}) {
     ? this.controlPanelPresenter.setControlButtonBusy(sourceButton, busyLabelKey)
     : () => {};
 
+  let succeeded = false;
   try {
     await action();
     this.currentState = ServerLifecycleState.UNKNOWN;
-    this.statusEligible = false;
+    this.canStart = false;
+    this.canStop = false;
+    this.pendingStartConfirmation = false;
+    this.pendingStopConfirmation = false;
     this.applyStatusView(this.currentState);
     this.infoMessageService.render({ key: messageKeys.success, state: InfoViewState.SUCCESS });
+    succeeded = true;
   } catch (error) {
     this.currentState = ServerLifecycleState.ERROR;
-    this.statusEligible = false;
+    this.canStart = false;
+    this.canStop = false;
+    this.pendingStartConfirmation = false;
+    this.pendingStopConfirmation = false;
     this.applyStatusView(StatusViewState.ERROR);
     const errorDescriptor = describeError(error);
     this.infoMessageService.render({ ...errorDescriptor, state: InfoViewState.ERROR });
@@ -90,6 +108,7 @@ export async function executeControlAction(action, messageKeys, options = {}) {
     restoreButtonState();
     this.setBusy(false, this.currentState);
   }
+  return succeeded;
 }
 
 /**
@@ -103,7 +122,8 @@ export function setBusy(value, viewState = this.currentState) {
   this.busy = value;
   this.updateControlAvailability(viewState);
   this.applyStatusView(viewState);
-  this.controlPanelPresenter.setStatusBusy(value);
+  const effectiveBusy = value || this.pendingStartConfirmation || this.pendingStopConfirmation;
+  this.controlPanelPresenter.setStatusBusy(effectiveBusy);
 }
 
 /**
@@ -115,8 +135,11 @@ export function setBusy(value, viewState = this.currentState) {
 export function updateControlAvailability(viewState = this.currentStatusViewState) {
   this.controlPanelPresenter.updateAvailability({
     busy: this.busy,
-    statusEligible: this.statusEligible,
     lifecycleState: viewState,
+    canStart: this.canStart,
+    canStop: this.canStop,
+    pendingStart: this.pendingStartConfirmation,
+    pendingStop: this.pendingStopConfirmation,
   });
 }
 

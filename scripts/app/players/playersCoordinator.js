@@ -1,4 +1,4 @@
-const PLAYERS_FALLBACK_INTERVAL_MS = 200;
+const PLAYERS_FALLBACK_INTERVAL_MS = 2000;
 
 /**
  * Manages the player stream connection and fallback polling logic.

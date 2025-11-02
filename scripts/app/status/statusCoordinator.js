@@ -1,4 +1,4 @@
-const STATUS_FALLBACK_INTERVAL_MS = 200;
+const STATUS_FALLBACK_INTERVAL_MS = 2000;
 
 /**
  * Coordinates the streaming and polling mechanisms for the server status endpoint.

@@ -58,6 +58,95 @@
           <a href="https://www.minecraft.net/en-us/download" data-role="download-minecraft" rel="noopener noreferrer" target="_blank">Minecraft (Sitio oficial)</a>
           <a href="https://www.java.com/en/download/" data-role="download-java" rel="noopener noreferrer" target="_blank">Java Runtime (Sitio oficial)</a>
         </div>
+        <div class="route-calculator" data-role="route-calculator">
+          <div class="route-calculator__header">
+            <h2 class="route-calculator__title">Calcular ruta y precio</h2>
+            <p class="route-calculator__description">
+              Introduce el origen y destino para estimar la duración y la tarifa del servicio.
+            </p>
+          </div>
+          <form class="route-form" data-role="route-form">
+            <div class="route-form__grid">
+              <label for="routeOriginInput">Origen
+                <input
+                  id="routeOriginInput"
+                  type="text"
+                  name="origin"
+                  placeholder="Ej. Gran Vía, Madrid"
+                  autocomplete="street-address"
+                  data-role="route-origin"
+                  required
+                />
+              </label>
+              <label for="routeDestinationInput">Destino
+                <input
+                  id="routeDestinationInput"
+                  type="text"
+                  name="destination"
+                  placeholder="Ej. Getafe, Madrid"
+                  autocomplete="street-address"
+                  data-role="route-destination"
+                  required
+                />
+              </label>
+              <label for="routeTariffSelect">Tarifa
+                <select id="routeTariffSelect" name="tariff" data-role="route-tariff"></select>
+              </label>
+            </div>
+            <div class="route-form__actions">
+              <label class="route-form__checkbox" for="routeScheduledInput">
+                <input id="routeScheduledInput" type="checkbox" data-role="route-scheduled" />
+                Recogida programada (+5&nbsp;€)
+              </label>
+              <button class="route-form__submit" type="submit" data-role="route-submit">Calcular ruta y precio</button>
+            </div>
+          </form>
+          <p class="route-status" data-role="route-status" aria-live="polite"></p>
+          <div class="route-result" data-role="route-result" hidden>
+            <p class="route-result__meta">
+              Origen: <span data-role="route-origin-label"></span> · Destino: <span data-role="route-destination-label"></span>
+            </p>
+            <p class="route-result__summary">
+              Distancia real: <span data-role="route-distance-real"></span> · Facturable: <span data-role="route-distance-billable"></span> · Duración: <span data-role="route-duration"></span>
+            </p>
+            <p class="route-result__price">
+              Precio estimado: <strong data-role="route-price"></strong>
+            </p>
+            <p class="route-result__meta">
+              Tarifa aplicada: <span data-role="route-tariff-label"></span>
+            </p>
+            <p class="route-result__supplement" data-role="route-supplement-row" hidden>
+              Suplemento programado: <span data-role="route-supplement"></span>
+            </p>
+            <p class="route-result__cache" data-role="route-cache-info"></p>
+            <div class="route-instructions" data-role="route-instructions" hidden>
+              <p class="route-instructions__title">Instrucciones de la ruta</p>
+              <ol class="route-instructions__list" data-role="route-instructions-list"></ol>
+            </div>
+            <div class="route-error__actions">
+              <a
+                class="route-button"
+                data-role="route-open-maps"
+                href="#"
+                target="_blank"
+                rel="noopener noreferrer"
+              >Abrir en Google Maps</a>
+            </div>
+          </div>
+          <div class="route-error" data-role="route-error" hidden>
+            <p data-role="route-error-message"></p>
+            <div class="route-error__actions">
+              <a
+                class="route-button"
+                data-role="route-error-open-maps"
+                href="#"
+                target="_blank"
+                rel="noopener noreferrer"
+              >Abrir en Google Maps</a>
+              <button class="route-button route-button--secondary" type="button" data-role="route-retry">Intentar de nuevo</button>
+            </div>
+          </div>
+        </div>
         <div id="installModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="installModalTitle" data-role="install-modal" hidden>
           <div class="modal__overlay" data-role="install-modal-overlay"></div>
           <div class="modal__content" role="document" data-role="install-modal-content">
@@ -104,10 +193,12 @@
     <script src="./runtime-config.js"></script>
     <script type="module">
       import { createDashboardApp } from './scripts/app/dashboardApp.js';
+      import { initialiseRouteCalculator } from './scripts/routing/initialiseRouteCalculator.js';
       const app = createDashboardApp();
       app.initialise().catch((error) => {
         console.error('Failed to initialise the dashboard', error);
       });
+      initialiseRouteCalculator();
     </script>
   </body>
 </html>

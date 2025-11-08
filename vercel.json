@@ -3,11 +3,11 @@
   "outputDirectory": "public",
   "rewrites": [
     {
-      "source": "/api",
+      "source": "/minecraft-api",
       "destination": "http://lianes8server.duckdns.org:8000/api"
     },
     {
-      "source": "/api/:path*",
+      "source": "/minecraft-api/:path*",
       "destination": "http://lianes8server.duckdns.org:8000/api/:path*"
     }
   ]

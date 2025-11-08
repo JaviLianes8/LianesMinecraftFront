@@ -1,5 +1,5 @@
 const REMOTE_API_BASE_URL = 'http://lianes8server.duckdns.org:8000/api';
-const PROXY_API_BASE_PATH = '/api';
+const PROXY_API_BASE_PATH = '/minecraft-api';
 
 /**
  * Base URL for the remote Minecraft control API. When the application is served

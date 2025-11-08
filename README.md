@@ -17,10 +17,12 @@ The project follows Clean Architecture principles. Domain logic lives inside ser
 - **Internationalisation (i18n):** bilingual catalogue with automatic detection and persistence in `localStorage`.
 - **Visual experience:** animated stage linked to live player data.
 - **Resilient HTTP layer:** falls back to hidden forms when `fetch` is blocked by CORS restrictions.
+- **Route and pricing calculator:** estimates journeys using GraphHopper Cloud and applies taxi fare logic with a Google Maps fallback.
 
 ## Requirements
 - Node.js ≥ 18 to serve static files during development (e.g. `npx http-server`).
 - A modern browser with support for ES modules and `EventSource`.
+- A GraphHopper Cloud API key exposed as `GRAPHHOPPER_KEY` (required for the route calculator).
 
 ## Quick start
 1. Clone the repository and move into the project directory.
@@ -35,8 +37,9 @@ The dashboard requires two passwords: one to unlock the interface and another to
 1. Open the project in the Vercel dashboard and navigate to **Settings → Environment Variables**.
 2. Add `START_PASSWORD` with the value that must unlock the dashboard.
 3. Add `STOP_PASSWORD` with the value that must authorise the shutdown.
-4. In **Settings → Build & Development Settings**, set **Build Command** to `npm run build` and **Output Directory** to `public`.
-5. Trigger a new deployment so that Vercel regenerates `runtime-config.js` with the updated secrets.
+4. Add `GRAPHHOPPER_KEY` with your GraphHopper Cloud token. This value is consumed by the internal `/api/ruta` endpoint and is never exposed to the browser.
+5. In **Settings → Build & Development Settings**, set **Build Command** to `npm run build` and **Output Directory** to `public`.
+6. Trigger a new deployment so that Vercel regenerates `runtime-config.js` with the updated secrets.
 
 ### Local development
 1. Export the environment variables before building, for example:

@@ -1,0 +1,224 @@
+.route-calculator {
+  width: 100%;
+  background: rgba(6, 18, 10, 0.6);
+  border: 1px solid rgba(72, 122, 82, 0.55);
+  border-radius: 12px;
+  padding: clamp(12px, 3.4vw, 20px);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(10px, 2.6vw, 16px);
+  box-shadow: inset 0 0 0 1px rgba(6, 18, 10, 0.35);
+}
+
+.route-calculator__header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.route-calculator__title {
+  font-size: clamp(18px, 3.2vw, 24px);
+  font-weight: 700;
+  margin: 0;
+}
+
+.route-calculator__description {
+  margin: 0;
+  color: rgba(240, 249, 235, 0.85);
+  font-size: clamp(13px, 2.6vw, 15px);
+}
+
+.route-form {
+  display: grid;
+  gap: clamp(10px, 2.8vw, 16px);
+}
+
+.route-form__grid {
+  display: grid;
+  gap: clamp(8px, 2.2vw, 14px);
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.route-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-weight: 600;
+  font-size: clamp(13px, 2.6vw, 15px);
+}
+
+.route-form input,
+.route-form select {
+  border-radius: 8px;
+  border: 1px solid rgba(134, 182, 141, 0.6);
+  background: rgba(18, 42, 24, 0.6);
+  color: var(--text);
+  padding: 10px 12px;
+  font-size: clamp(13px, 2.6vw, 15px);
+  transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+.route-form input:focus,
+.route-form select:focus {
+  outline: none;
+  border-color: rgba(175, 226, 184, 0.85);
+  box-shadow: 0 0 0 3px rgba(76, 150, 89, 0.35);
+}
+
+.route-form__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(10px, 2.8vw, 18px);
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.route-form__submit {
+  background: #3a8746;
+  color: #f4ffee;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 20px;
+  font-weight: 700;
+  font-size: clamp(14px, 2.8vw, 16px);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.route-form__submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.route-form__submit:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(12, 52, 22, 0.45);
+}
+
+.route-form__checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: clamp(13px, 2.6vw, 15px);
+}
+
+.route-form__checkbox input {
+  width: 18px;
+  height: 18px;
+  accent-color: #58b06a;
+}
+
+.route-status {
+  min-height: 1.2em;
+  font-size: clamp(13px, 2.6vw, 15px);
+  color: rgba(235, 245, 232, 0.85);
+}
+
+.route-result {
+  border-top: 1px dashed rgba(96, 156, 110, 0.4);
+  padding-top: clamp(12px, 3vw, 18px);
+  display: grid;
+  gap: clamp(10px, 2.6vw, 14px);
+}
+
+.route-result__summary,
+.route-result__price,
+.route-result__meta {
+  margin: 0;
+  font-size: clamp(13px, 2.6vw, 15px);
+}
+
+.route-result__price strong {
+  font-size: clamp(18px, 3.2vw, 24px);
+  color: #b7f6c3;
+}
+
+.route-result__supplement {
+  color: rgba(255, 235, 180, 0.85);
+}
+
+.route-result__cache {
+  color: rgba(173, 208, 180, 0.75);
+  font-size: clamp(12px, 2.4vw, 14px);
+}
+
+.route-instructions {
+  background: rgba(10, 28, 16, 0.65);
+  border-radius: 10px;
+  border: 1px solid rgba(78, 122, 88, 0.45);
+  padding: clamp(10px, 2.6vw, 14px);
+  max-height: 280px;
+  overflow: auto;
+}
+
+.route-instructions__title {
+  margin: 0 0 8px;
+  font-size: clamp(13px, 2.6vw, 15px);
+  font-weight: 700;
+}
+
+.route-instructions__list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+  font-size: clamp(12px, 2.4vw, 14px);
+}
+
+.route-error {
+  border-radius: 10px;
+  border: 1px solid rgba(255, 120, 110, 0.5);
+  background: rgba(50, 12, 12, 0.65);
+  color: #ffd9d6;
+  padding: clamp(10px, 2.6vw, 14px);
+  display: grid;
+  gap: clamp(8px, 2.2vw, 12px);
+}
+
+.route-error__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(8px, 2.2vw, 12px);
+}
+
+.route-button {
+  border: 1px solid rgba(177, 228, 191, 0.6);
+  color: #dfffe9;
+  background: rgba(38, 90, 46, 0.6);
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-weight: 600;
+  font-size: clamp(13px, 2.6vw, 15px);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.route-button:hover {
+  background: rgba(54, 124, 66, 0.7);
+}
+
+.route-button--secondary {
+  border-color: rgba(222, 206, 142, 0.6);
+  background: rgba(82, 68, 26, 0.45);
+  color: #f7edd0;
+}
+
+@media (max-width: 540px) {
+  .route-form__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .route-form__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .route-form__submit,
+  .route-button {
+    width: 100%;
+    justify-content: center;
+  }
+}

@@ -1,4 +1,5 @@
 const DEFAULT_CACHE_KEY = 'dashboard.snapshot';
+const MAX_CACHE_AGE_MS = 60 * 60 * 1000;
 
 /**
  * Persists and restores dashboard data using Web Storage.
@@ -15,7 +16,24 @@ export function createDashboardStateCache(storage) {
       if (!raw) {
         return null;
       }
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') {
+        storage.removeItem(DEFAULT_CACHE_KEY);
+        return null;
+      }
+
+      const { updatedAt } = parsed;
+      if (typeof updatedAt !== 'number') {
+        storage.removeItem(DEFAULT_CACHE_KEY);
+        return null;
+      }
+
+      if (Date.now() - updatedAt > MAX_CACHE_AGE_MS) {
+        storage.removeItem(DEFAULT_CACHE_KEY);
+        return null;
+      }
+
+      return parsed;
     } catch (error) {
       return null;
     }
